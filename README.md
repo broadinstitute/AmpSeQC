@@ -1,5 +1,5 @@
-# README
-An amplicon sequencing pipeline for *Plasmodium falciparum*
+# AmpSeQC
+A general multiplexed amplicon sequencing and quality control pipeline specifically built for *Plasmodium falciparum* data
 
 **Input**: directory of demuxed fastq files, gff3 file of amplicon panel or genes, optional parameter file
 
