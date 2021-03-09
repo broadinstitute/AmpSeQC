@@ -1,0 +1,47 @@
+# README: tab-delimited key-value pairs for parameters
+# NOTE: script will ignore commented and blank lines
+
+#### you may want to change these (input/output) ####
+# top-level demultiplexed directory (off the instrument itself)
+DEMUX_DIRECTORY ./
+
+# output read count file
+BED_FILE	read_counts.tsv
+
+# change to "true" (do not include quotes) if running iSeq data
+ISEQ	false
+
+# change to "false" (do not include quotes) if you want to use Bowtie2 aligner
+BWA	true
+
+# number of threads to run sample analyses
+NTHREADS	1
+
+# name of the conda environment installed
+CONDA_ENV	ampseqc
+
+#### you might want to change these (annotations) ####
+# bowtie2 indexed fasta file containing parasite genome (if using your own, please run bowtie2-build first)
+PARASITE_GENOME	reference.fasta
+
+# gff file with amplicon ID and coordinates
+ANNOTATION_FILE	amplicons.gff
+
+#### you can probably leave these alone (qc parameters) ####
+# minimum read length to retain (default 70 bp)
+MIN_LENGTH	70
+
+# minimum base quality (PHRED score) to keep (default 2)
+MIN_BQ	2
+
+# maximum number of "N" bases allowed in read (default 1)
+MAX_N	1
+
+# max insert size for bowtie2 (default 1000 bp)
+MAX_INSERT_SIZE 500
+
+# max amount of soft clipping allowed (only applies to bwa)
+MAX_SOFTCLIP	20
+
+#### use these parameters instead if you want read counts for all genes across the 3d7 genome ####
+# ANNOTATION_FILE genes.gff
