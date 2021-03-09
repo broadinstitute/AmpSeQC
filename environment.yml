@@ -13,3 +13,4 @@ dependencies:
     - samclip
     - fastqc
     - multiqc
+    - parallel 

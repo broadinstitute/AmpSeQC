@@ -30,6 +30,7 @@ This set of scripts will run sequencing quality control, alignments (with bowtie
 - Samclip
 - Samtools
 - Trim-Galore
+- GNU parallel (for multi-threading support)
 
 ## Installation
 1. Install Anaconda or miniconda (if not already installed)
