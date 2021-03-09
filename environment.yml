@@ -1,0 +1,15 @@
+name: ampseqc
+channels:
+    - bioconda
+    - conda-forge
+    - anaconda
+dependencies:
+    - "python>=3.7"
+    - samtools
+    - bowtie2
+    - bwa
+    - trim-galore
+    - htseq
+    - samclip
+    - fastqc
+    - multiqc
