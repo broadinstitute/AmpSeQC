@@ -26,7 +26,6 @@ MAX_INSERT_SIZE=500
 MAX_SOFTCLIP=20
 MAX_N=1
 NTHREADS=1
-CONDA_ENV="ampseqc"
 
 if type conda 2>/dev/null; then
     echo "INFO: found conda install"
@@ -143,18 +142,6 @@ if [[ -s $PARAM_FILE ]]; then
                         echo "WARNING: NTHREADS '$VALUE' is invalid!"
                     fi
                     ;;
-                "CONDA_ENV")
-                    if [[  -n $VALUE ]]; then
-                        if conda info --envs | grep ${CONDA_ENV}; then
-                            CONDA_ENV="$VALUE"
-                        else
-                            echo "ERROR: CANNOT FIND CONDA_ENV $CONDA_ENV"
-                            exit 1 
-                        fi
-                    else
-                        echo "WARNING: CONDA_ENV was blank!"
-                    fi
-                    ;;
                 *) echo "Warning: unknown parameter found: $KEY";;
             esac
         fi
@@ -171,7 +158,6 @@ echo "INFO: Setting MAX_N to $MAX_N"
 echo "INFO: Setting MAX_INSERT_SIZE to $MAX_INSERT_SIZE"
 echo "INFO: Setting MAX_SOFTCLIP to $MAX_SOFTCLIP"
 echo "INFO: Setiting NTHREADS to $NTHREADS"
-echo "INFO: Setting CONDA_ENV to $CONDA_ENV"
 if $ISEQ; then echo "INFO: Setting ISEQ to true"; fi
 if $BWA; then
     echo "INFO: Using BWA MEM aligner"
@@ -180,14 +166,12 @@ else
 fi
 
 # these need to be exported to be used in task script
-export ISEQ BWA MIN_LENGTH MIN_BQ MAX_N MAX_INSERT_SIZE MAX_SOFTCLIP PARASITE_GENOME DEMUX_DIRECTORY CONDA_ENV
+export ISEQ BWA MIN_LENGTH MIN_BQ MAX_N MAX_INSERT_SIZE MAX_SOFTCLIP PARASITE_GENOME DEMUX_DIRECTORY
 
 
 #######################################################
 #### STEP 1: Set up environment for pipeline tools ####
 #######################################################
-
-conda activate $CONDA_ENV || source activate $CONDA_ENV || (echo "ERROR: Cannot activate $CONDA_ENV" && exit 1)
 
 # find fastq files and dump to text files
 find "$DEMUX_DIRECTORY" -xtype f -name "*_R1*.fastq.gz" | sort -V > fwd_reads.txt

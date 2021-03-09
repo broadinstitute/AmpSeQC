@@ -13,8 +13,6 @@ exec 2<&-
 exec 1<>logs/${SAMPLE}.out
 exec 2<>logs/${SAMPLE}.err
 
-source activate $CONDA_ENV
-
 READ1="qc/${SAMPLE}_R1.fastq.gz"
 READ2="qc/${SAMPLE}_R2.fastq.gz"
 
