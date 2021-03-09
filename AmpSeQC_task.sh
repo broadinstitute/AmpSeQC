@@ -53,20 +53,20 @@ fi
 echo "INFO: Running FastQC on post-QC reads. Please wait..."
 fastqc -o fastqc_postqc --noextract -f fastq "$READ1" "$READ2"
 if $BWA; then
-    echo "INFO: Aligning $SAMPLE with BWA-MEM to $PARASITE_GENOME. Please wait..."
-    bwa mem -I "200,100,$MAX_INSERT_SIZE,50" "$PARASITE_GENOME" "$READ1" "$READ2" > "alignments/${SAMPLE}.sam"
+    echo "INFO: Aligning $SAMPLE with BWA-MEM to $REF_GENOME. Please wait..."
+    bwa mem -I "200,100,$MAX_INSERT_SIZE,50" "$REF_GENOME" "$READ1" "$READ2" > "alignments/${SAMPLE}.sam"
     if [ ! -s "alignments/${SAMPLE}.sam" ] || [ $(samtools flagstat "alignments/${SAMPLE}.sam" | head -n 1 | awk '{ print $1 }') == "0" ]; then
             echo "WARNING: No alignment data produced for $SAMPLE!"
             echo "alignments/${SAMPLE}.sam" > "bad_alignment/$SAMPLE"
             exit 1
     fi
-    samclip --ref "$PARASITE_GENOME" --max "$MAX_SOFTCLIP" "alignments/${SAMPLE}.sam" | samtools fixmate - - | samtools view -bf 3 | samtools sort -T "alignments/${SAMPLE}" > "alignments/${SAMPLE}.proper_pairs.bam" && \
+    samclip --ref "$REF_GENOME" --max "$MAX_SOFTCLIP" "alignments/${SAMPLE}.sam" | samtools fixmate - - | samtools view -bf 3 | samtools sort -T "alignments/${SAMPLE}" > "alignments/${SAMPLE}.proper_pairs.bam" && \
     samtools index "alignments/${SAMPLE}.proper_pairs.bam" && \
     samtools sort -T "alignments/${SAMPLE}" "alignments/${SAMPLE}.sam" > "alignments/${SAMPLE}.bam" && \
     rm "alignments/${SAMPLE}.sam"
 else
-    echo "INFO: Aligning $SAMPLE with Bowtie2 to $PARASITE_GENOME. Please wait..."
-    bowtie2 -X "$MAX_INSERT_SIZE" --very-sensitive -x "$PARASITE_GENOME" -1 "$READ1" -2 "$READ2" | samtools sort -T "alignments/${SAMPLE}" > "alignments/${SAMPLE}.bam" && \
+    echo "INFO: Aligning $SAMPLE with Bowtie2 to $REF_GENOME. Please wait..."
+    bowtie2 -X "$MAX_INSERT_SIZE" --very-sensitive -x "$REF_GENOME" -1 "$READ1" -2 "$READ2" | samtools sort -T "alignments/${SAMPLE}" > "alignments/${SAMPLE}.bam" && \
     samtools index "alignments/${SAMPLE}.bam"
     if [ ! -s "alignments/${SAMPLE}.bam" ] || [ $(samtools flagstat "alignments/${SAMPLE}.bam" | head -n 1 | awk '{ print $1 }') == "0" ]; then
         echo "WARNING: No alignment data produced for $SAMPLE!"

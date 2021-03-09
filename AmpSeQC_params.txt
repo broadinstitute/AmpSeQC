@@ -6,7 +6,7 @@
 DEMUX_DIRECTORY ./
 
 # output read count file
-BED_FILE	read_counts.tsv
+COUNT_FILE	read_counts.tsv
 
 # change to "true" (do not include quotes) if running iSeq data
 ISEQ	false
@@ -22,7 +22,7 @@ CONDA_ENV	ampseqc
 
 #### you might want to change these (annotations) ####
 # bowtie2 indexed fasta file containing parasite genome (if using your own, please run bowtie2-build first)
-PARASITE_GENOME	reference.fasta
+REF_GENOME	reference.fasta
 
 # gff file with amplicon ID and coordinates
 ANNOTATION_FILE	amplicons.gff
@@ -40,7 +40,7 @@ MAX_N	1
 # max insert size for bowtie2 (default 1000 bp)
 MAX_INSERT_SIZE 500
 
-# max amount of soft clipping allowed (only applies to bwa)
+# max amount of soft clipping allowed (only applies to bwa mem)
 MAX_SOFTCLIP	20
 
 #### use these parameters instead if you want read counts for all genes across the 3d7 genome ####

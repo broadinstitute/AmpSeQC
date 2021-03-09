@@ -1,13 +1,13 @@
 #!/bin/bash
 
-###################################################
-#### PIPELINE FOR PARASITE AMPLICON SEQUENCING ####
-####      CONTACT TIM STRAUB FOR DETAILS       ####
-####       tim.straub@broadinstitute.org       ####
-####                                           ####
-####          QC --> ALIGN --> COUNT           ####
-####            UPDATED MARCH 2021             ####
-###################################################
+##########################################
+#### PIPELINE FOR AMPLICON SEQUENCING ####
+####  CONTACT TIM STRAUB FOR DETAILS  ####
+####   tim.straub@broadinstitute.org  ####
+####                                  ####
+####      QC --> ALIGN --> COUNT      ####
+####        UPDATED MARCH 2021        ####
+##########################################
 
 #################################
 #### STEP 0: Read parameters ####
@@ -18,7 +18,7 @@ ISEQ=false
 BWA=true
 DEMUX_DIRECTORY="./"
 BED_FILE="read_counts.tsv"
-PARASITE_GENOME="reference.fasta"
+REF_GENOME="reference.fasta"
 ANNOTATION_FILE="amplicons.gff"
 MIN_LENGTH=70
 MIN_BQ=2
@@ -26,13 +26,6 @@ MAX_INSERT_SIZE=500
 MAX_SOFTCLIP=20
 MAX_N=1
 NTHREADS=1
-
-if type conda 2>/dev/null; then
-    echo "INFO: found conda install"
-else
-    echo "ERROR: Cannot find conda."
-    exit 1
-fi
 
 # check for passing parameter file in arguments
 # if not, then check for params.txt and default_params.txt files
@@ -86,11 +79,11 @@ if [[ -s $PARAM_FILE ]]; then
                     fi
                     BED_FILE="$VALUE"
                     ;;
-                "PARASITE_GENOME")
+                "REF_GENOME")
                     if [[ -s $VALUE ]]; then
-                        PARASITE_GENOME="$VALUE"
+                        REF_GENOME="$VALUE"
                     else
-                        echo "WARNING: PARASITE_GENOME '$VALUE' is invalid!"
+                        echo "WARNING: REF_GENOME '$VALUE' is invalid!"
                     fi
                     ;;
                 "ANNOTATION_FILE")
@@ -150,7 +143,7 @@ fi
 
 echo "INFO: Setting DEMUX_DIRECTORY to $DEMUX_DIRECTORY"
 echo "INFO: Setting BED_FILE to $BED_FILE"
-echo "INFO: Setting PARASITE_GENOME to $PARASITE_GENOME"
+echo "INFO: Setting REF_GENOME to $REF_GENOME"
 echo "INFO: Setting ANNOTATION_FILE to $ANNOTATION_FILE"
 echo "INFO: Setting MIN_LENGTH to $MIN_LENGTH"
 echo "INFO: Setting MIN_BQ to $MIN_BQ"
@@ -166,7 +159,7 @@ else
 fi
 
 # these need to be exported to be used in task script
-export ISEQ BWA MIN_LENGTH MIN_BQ MAX_N MAX_INSERT_SIZE MAX_SOFTCLIP PARASITE_GENOME DEMUX_DIRECTORY
+export ISEQ BWA MIN_LENGTH MIN_BQ MAX_N MAX_INSERT_SIZE MAX_SOFTCLIP REF_GENOME DEMUX_DIRECTORY
 
 
 #######################################################
