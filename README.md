@@ -44,10 +44,10 @@ This set of scripts will run sequencing quality control, alignments (with bowtie
 4. Create a new conda environment
     
     `conda env create -f environment.yml`
-    
+
 5. Activate the environment:
 
-  `source activate ampseqc`
+    `source activate ampseqc`
 
 ## Quick start guide
 
