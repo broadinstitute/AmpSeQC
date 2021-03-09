@@ -64,7 +64,7 @@ You can edit the script directly: there is a small section of parameters in the 
 ## Pipeline parameters
 ### Options you probably should change each analysis run
 - `DEMUX_DIRECTORY`
-  - top-level demultiplexed directory of gzipped-fastq files (either from sequencer or demux pipeline)
+  - top-level demultiplexed directory of gzipped-fastq files (in `{SAMPLE}_R[12]_*.fastq.gz` format)
 - `COUNT_FILE`
   - output read count tsv file
 
