@@ -17,9 +17,6 @@ BWA	true
 # number of threads to run sample analyses
 NTHREADS	1
 
-# name of the conda environment installed
-CONDA_ENV	ampseqc
-
 #### you might want to change these (annotations) ####
 # bowtie2 indexed fasta file containing parasite genome (if using your own, please run bowtie2-build first)
 REF_GENOME	reference.fasta
