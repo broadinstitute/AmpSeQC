@@ -9,15 +9,15 @@ for *Plasmodium falciparum* data
 **Output**: tsv file of read counts per amplicon/gene per sample, MultiQC reports
 
 ### Steps in pipeline
-1. Search for and validate paired-end fastq files in `DEMUX_DIRECTORY`
+1. Search for and validate specified paired-end fastq files
 2. Run FastQC on raw reads.
 3. Run Trim Galore, removing adapter content and low quality sequences.
 4. Run FastQC on post-QC reads.
-5. Align to reference genome using Bowtie2 global aligner or BWA-Mem local aligner.
-6. Filter for soft-clipping (BWA-Mem only) and retain only properly paired reads.
+5. Align to reference genome using BWA-Mem or Bowtie2.
+6. Filter for soft-clipping (BWA-Mem only) and retain only properly paired reads (both aligners).
 7. Run FastQC on bam file of filtered aligned reads.
-8. Run MultiQC to collate all FastQC results into reports.
-9. Once all samples finished aligning, generate read counts using `bedtools multicov`.
+9. Once all samples finished QC and aligning, generate table of read counts per amplicon per sample
+10. Run MultiQC to collate all FastQC results into reports.
 
 Dependencies
 ------------
