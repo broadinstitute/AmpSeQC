@@ -94,7 +94,7 @@ def parse_fastq(files):
             elif n_1 == 0:
                 bad_demux.append(file.split("_R1")[0])
             else:
-                sample = file.split("_R1")[0]
+                sample = os.path.basename(file).split("_R1")[0]
                 if sample in samples:
                     print("ERROR: %s is not unique sample name!" % sample, file=sys.stderr)
                     sys.exit(1)
@@ -114,7 +114,7 @@ def parse_fastq(files):
             elif n_1 == 0:
                 bad_demux.append(file.split(".1.fastq")[0].split(".1.fq")[0])
             else:
-                sample = file.split(".1.fastq")[0].split(".1.fq")[0]
+                sample = os.path.basename(file).split(".1.fastq")[0].split(".1.fq")[0]
                 if sample in samples:
                     print("ERROR: %s is not unique sample name!" % sample, file=sys.stderr)
                     sys.exit(1)
