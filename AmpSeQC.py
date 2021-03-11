@@ -28,7 +28,7 @@ def check_commands(no_fastqc=False, bowtie2=False):
     missing = False
     for cmd in cmds:
         try:
-            subprocess.run(cmd, check=True, shell=True)
+            subprocess.run(cmd, check=True, shell=True, capture_output=False)
         except KeyboardInterrupt:
             sys.exit(1)
         except SystemExit:
@@ -302,7 +302,7 @@ def main():
     parser = ArgumentParser(description="Amplicon sequencing quality control pipeline", usage="%(prog)s [options] -c [read_counts] -r [ref.fasta] -a [annot.gff] fastq [fastq ...]")
     parser.add_argument("fastq", nargs="+", help="Fastq file(s) to analyze (expects paired-end reads in separate files)")
     parser.add_argument("-c", "--counts", default="read_counts.tsv", help="Read count tsv file (default: read_counts.tsv)")
-    parser.add_argument("-r", "--ref", default="reference.fasta", help="Indexed reference fasta file to align to (default: reference.fasta")
+    parser.add_argument("-r", "--ref", default="reference.fasta", help="Indexed reference fasta file to align to (default: reference.fasta)")
     parser.add_argument("-a", "--annot", default="amplicons.gff", help="Amplicon/gene gff3 file to generate read counts of (default: amplicons.gff)")
     parser.add_argument("--2color", dest="two_color", action="store_true", default=False, help="Run with 2 color chemistry (e.g. iSeq) QC parameters (default: False")
     parser.add_argument("-l", "--min_length", type=int, default=70, help="Minimum read length (in bp) to retain after trimming (default: 70)")
