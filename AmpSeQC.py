@@ -288,9 +288,6 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
 
     return good
 
-def _process_sample(*args):
-    return process_sample(*args)
-
 def process_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_length=70, min_bq=20, max_N=1, max_insert_size=500, soft_clip=5, bowtie2=False, no_fastqc=False):
     """QC and align sample"""
     if not qc_sample(sample, fwd, rvs, ref=ref, two_color=two_color, min_length=min_length, min_bq=min_bq, max_N=max_N, no_fastqc=no_fastqc):
