@@ -77,15 +77,12 @@ def check_commands(no_fastqc=False, bowtie2=False):
 
 
 def _fastq_reads(file):
-    if "q.gz" in file:
-        f = gzip.open(file, "rt")
+    if file[-9:] == ".fastq.gz" or file[-6:] == ".fq.gz":
+        output = subprocess.run(f"zcat {file} | wc -l", text=True, shell=True, check=True, capture_output=True)
     else:
-        f = open(file)
-    i = 0
-    for line in f:
-        i += 1
-    f.close()
-    return i / 4
+        output = subprocess.run(f"wc -l {file}", text=True, shell=True, check=True, capture_output=True)
+    
+    return int(output.stdout.strip()) / 4
 
 def parse_fastq(files):
     """Parse fastq files to ensure everything is hunky dorey"""
