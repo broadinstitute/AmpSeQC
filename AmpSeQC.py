@@ -184,9 +184,10 @@ def qc_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_leng
         n_2 = _fastq_reads(read2)
         if n_1 and n_1 == n_2:
             print("INFO: QC complete for %s" % sample, file=sys.stderr)
-            print("INFO: Running FastQC on post-QC data for %s" % sample, file=sys.stderr)
-            if not no_fastqc and not run_fastqc(read1, read2, "fastqc_postqc"):
-                print("WARNING: Could not run FastQC on post-QC data!", file=sys.stderr)
+            if not no_fastqc:
+                print("INFO: Running FastQC on post-QC data for %s" % sample, file=sys.stderr)
+                if not run_fastqc(read1, read2, "fastqc_postqc"):
+                    print("WARNING: Could not run FastQC on post-QC data!", file=sys.stderr)
             return True
     
     print("WARNING: QC of %s failed" % sample, file=sys.stderr)
@@ -199,7 +200,7 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
     read1 = "qc/%s_R1.fastq.gz" % sample
     read2 = "qc/%s_R2.fastq.gz" % sample
 
-    w = open("logs/%s.alignment.log", "w")
+    w = open("logs/%s.alignment.log" % sample, "w")
     if bowtie2:
         pass #NYI
     else:
