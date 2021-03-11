@@ -25,12 +25,13 @@ def check_commands(no_fastqc=False, bowtie2=False):
     if bowtie2:
         cmds.append(["bowtie2", "--version"])
     else:
-        cmds.extend(["bwa", ["samclip", "--version"]])
+        cmds.extend([["bwa"], ["samclip", "--version"]])
     
     missing = False
     for cmd in cmds:
         try:
             subprocess.run(cmd, capture_output=True)
+            print("INFO: %s OK!" % cmd[0], file=sys.stderr)
         except KeyboardInterrupt:
             sys.exit(1)
         except SystemExit:
@@ -320,6 +321,11 @@ def main():
     parser.add_argument("-p", "--procs", type=int, default=1, help="Number of processors to use (default: 1)")
     args = parser.parse_args()
 
+    if not args.fastq:
+        parser.print_help()
+        print("ERROR: No fastq files specified!", file=sys.stderr)
+        sys.exit(1)
+
     check_commands(no_fastqc=args.no_fastqc, bowtie2=args.bowtie2)
 
     print("INFO: Parsing fastq files. Please wait...")
@@ -349,9 +355,9 @@ def main():
     bams = " ".join(["alignments/%s.proper_pairs.bam" % sample for sample in good_alignment])
 
     print("""INFO: Good data: %d
-    INFO: Bad demux (no sequencing data): %d
-    INFO: Bad QC (failed Trim-Galore): %d
-    INFO: Bad alignment (no properly aligned reads): %d""" % (len(good_alignment), len(bad_demux), len(bad_qc), len(bad_alignment)), file=sys.stderr)
+INFO: Bad demux (no sequencing data): %d
+INFO: Bad QC (failed Trim-Galore): %d
+INFO: Bad alignment (no properly aligned reads): %d""" % (len(good_alignment), len(bad_demux), len(bad_qc), len(bad_alignment)), file=sys.stderr)
     
     print("INFO: Running htseq-count to generate read counts per amplicon per sample. Please wait...", file=sys.stderr)
     count_data = {sample: {} for sample in good_alignment}
