@@ -199,7 +199,7 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
     if bowtie2:
         pass #NYI
     else:
-        subprocess.run(shlex.split("bwa mem -I '200,100,%d,50' %s %s %s > alignments/%s.sam" % (max_insert_size, ref, read1, read2, sample)), check=True, stderr=w)
+        subprocess.run("bwa mem -I '200,100,%d,50' %s %s %s > alignments/%s.sam" % (max_insert_size, ref, read1, read2, sample), shell=True, check=True, stderr=w)
         if os.path.isfile("alignments/%s.sam"):
             output = subprocess.run(shlex.split("samtools flagstat alignments/%s.sam | head -n 1 | awk '{ print $1 }'" % sample), check=True, stdout=subprocess.PIPE, stderr=w)
             if int(output.stdout) > 0:
