@@ -201,8 +201,27 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
     read2 = f"qc/{sample}_R2.fastq.gz"
 
     w = open(f"logs/{sample}.alignment.log", "w")
+    good = False
     if bowtie2:
         subprocess.run(f"bowtie2 -X {max_insert_size} --very-sensitive -x {ref} -1 {read1} -2 {read2} | samtools sort -T alignments/{sample} > alignments/{sample}.bam && samtools index alignments/{sample}.bam", shell=True, check=True, stderr=w)
+        if os.path.isfile(f"alignments/{sample}.bam"):
+            output = subprocess.run("samtools flagstat alignments/%s.bam | head -n 1 | awk '{ print $1 }'" % sample, shell=True, check=True, stdout=subprocess.PIPE, stderr=w, text=True)
+            if int(output.stdout.strip()) > 0:
+                subprocess.run(f"samtools view -bf 3 alignments/{sample}.bam > alignments/{sample}.proper_pairs.bam && \
+                                 samtools index alignments/{sample}.proper_pairs.bam", shell=True, check=True, stderr=w)
+                if os.path.isfile(f"alignments/{sample}.proper_pairs.bam"):
+                    output = subprocess.run("samtools flagstat alignments/%s.proper_pairs.bam | head -n 1 | awk '{ print $1 }'" % sample, shell=True, check=True, stdout=subprocess.PIPE, stderr=w, text=True)
+                    if int(output.stdout.strip()) > 0:
+                        print("INFO: Alignment of %s finished with %d paired reads." % (sample, int(output.stdout.strip())/2), file=sys.stderr)
+                        good = True
+                    else:
+                        print(f"WARNING: Alignment of {sample} finished without any good aligned reads.", file=sys.stderr)
+                else:
+                    print(f"ERROR: Did not generate good alignment for {sample}", file=sys.stderr)
+            else:
+                print(f"ERROR: Alignment has zero reads for {sample}!", file=sys.stderr)
+        else:
+            print(f"ERROR: No alignment file for {sample}!", file=sys.stderr)
     else:
         subprocess.run(f"bwa mem -I '200,100,{max_insert_size},50' {ref} {read1} {read2} > alignments/{sample}.sam", shell=True, check=True, stderr=w)
         if os.path.isfile(f"alignments/{sample}.sam"):
@@ -216,6 +235,7 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
                     output = subprocess.run("samtools flagstat alignments/%s.proper_pairs.bam | head -n 1 | awk '{ print $1 }'" % sample, shell=True, check=True, stdout=subprocess.PIPE, stderr=w, text=True)
                     if int(output.stdout.strip()) > 0:
                         print("INFO: Alignment of %s finished with %d paired reads." % (sample, int(output.stdout.strip())/2), file=sys.stderr)
+                        good = True
                     else:
                         print(f"WARNING: Alignment of {sample} finished without any good aligned reads.", file=sys.stderr)
                 else:
@@ -224,9 +244,8 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
                 print(f"ERROR: Alignment has zero reads for {sample}!", file=sys.stderr)
         else:
             print(f"ERROR: No alignment file for {sample}!", file=sys.stderr)
-            return False
     w.close()
-    if not no_fastqc:
+    if good and not no_fastqc:
         try:
             subprocess.run(shlex.split("fastqc -o fastqc_aligned --noextract -f bam alignments/%s.proper_pairs.bam" % sample), check=True)
         except KeyboardInterrupt:
@@ -238,8 +257,7 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
             print("WARNING: Could not run FastQC on aligned data!", file=sys.stderr)
     
 
-    return True
-
+    return good
 
 def _process_sample(args):
     return process_sample(*args)
