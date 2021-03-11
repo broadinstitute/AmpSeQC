@@ -206,15 +206,15 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
     else:
         subprocess.run("bwa mem -I '200,100,%d,50' %s %s %s > alignments/%s.sam" % (max_insert_size, ref, read1, read2, sample), shell=True, check=True, stderr=w)
         if os.path.isfile("alignments/%s.sam" % sample):
-            output = subprocess.run("samtools flagstat alignments/%s.sam | head -n 1 | awk '{ print $1 }'" % sample, shell=True, check=True, stdout=subprocess.PIPE, stderr=w)
-            if int(output.stdout) > 0:
+            output = subprocess.run("samtools flagstat alignments/%s.sam | head -n 1 | awk '{ print $1 }'" % sample, shell=True, check=True, stdout=subprocess.PIPE, stderr=w, text=True)
+            if int(output.stdout.strip()) > 0:
                 subprocess.run("samclip --ref {ref} --max {soft_clip} alignments/{sample}.sam \
                     | samtools fixmate - - | samtools view -bf 3 | samtools sort -T alignments/{sample} > alignments/{sample}.proper_pairs.bam && \
                         samtools index alignments/{sample}.proper_pairs.bam && samtools sort -T alignments/{sample} alignments/{sample}.sam > alignments/{sample}.bam".format(ref=ref, soft_clip=soft_clip, sample=sample), check=True, shell=True, stderr=w)
                 os.remove("alignments/%s.sam" % sample)
                 if os.path.isfile("alignments/%s.proper_pairs.bam" % sample):
-                    output = subprocess.run("samtools flagstat alignments/%s.proper_pairs.bam | head -n 1 | awk '{ print $1 }'" % sample, shell=True, check=True, stdout=subprocess.PIPE, stderr=w)
-                    if int(output.stdout) > 0:
+                    output = subprocess.run("samtools flagstat alignments/%s.proper_pairs.bam | head -n 1 | awk '{ print $1 }'" % sample, shell=True, check=True, stdout=subprocess.PIPE, stderr=w, text=True)
+                    if int(output.stdout.strip()) > 0:
                         print("INFO: Alignment of %s finished with %s reads." % (sample, output.stdout), file=sys.stderr)
                     else:
                         print("WARNING: Alignment of %s finished without any good aligned reads." % sample, file=sys.stderr)
@@ -371,7 +371,7 @@ INFO: Bad alignment (no properly aligned reads): %d""" % (len(good_alignment), l
     print("INFO: Running htseq-count to generate read counts per amplicon per sample. Please wait...", file=sys.stderr)
     count_data = {sample: {} for sample in good_alignment}
     amplicons = []
-    output = subprocess.run(shlex.split("htseq-count -r pos -s no -t 'amplicon' -i 'ID' -n %d %s %s" % (args.procs, bams, args.annot)), capture_output=True, check=True)
+    output = subprocess.run(shlex.split("htseq-count -r pos -s no -t 'amplicon' -i 'ID' -n %d %s %s" % (args.procs, bams, args.annot)), capture_output=True, check=True, text=True)
     for line in output.stdout.split("\n"):
         line = line.split()
         amplicon = line[0]
