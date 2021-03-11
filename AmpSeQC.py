@@ -15,27 +15,27 @@ from multiprocessing import Pool
 from argparse import ArgumentParser
 
 def check_commands(no_fastqc=False, bowtie2=False):
-    cmds = ["trim_galore --version", "samtools --version", "htseq-count --version"]
+    cmds = ["trim_galore", "samtools", "htseq-count"]
     
     if not no_fastqc:
-        cmds.extend(["fastqc --version", "multiqc --version"])
+        cmds.extend(["fastqc", "multiqc"])
 
     if bowtie2:
-        cmds.append("bowtie2 --version")
+        cmds.append("bowtie2")
     else:
-        cmds.extend(["bwa", "samclip --version"])
+        cmds.extend(["bwa", "samclip"])
     
     missing = False
     for cmd in cmds:
         try:
-            subprocess.run(cmd, check=True, shell=True, capture_output=False)
+            subprocess.run(cmd)
         except KeyboardInterrupt:
             sys.exit(1)
         except SystemExit:
             raise SystemExit
-        except:
+        except FileNotFoundError:
             missing = True
-            print("ERROR: Cannot run %s. Check if program is installed and try again." % cmd)
+            print("ERROR: Cannot find %s. Check if program is installed and try again." % cmd)
     
     if missing:
         sys.exit(1)
