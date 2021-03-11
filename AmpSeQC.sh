@@ -17,7 +17,7 @@
 ISEQ=false
 BWA=true
 DEMUX_DIRECTORY="./"
-BED_FILE="read_counts.tsv"
+COUNT_FILE="read_counts.tsv"
 REF_GENOME="reference.fasta"
 ANNOTATION_FILE="amplicons.gff"
 MIN_LENGTH=70
@@ -73,11 +73,11 @@ if [[ -s $PARAM_FILE ]]; then
                         echo "WARNING: DEMUX_DIRECTORY '$VALUE' does not exist!"
                     fi
                     ;;
-                "BED_FILE")
+                "COUNT_FILE")
                     if [[ -s $VALUE ]]; then
                         echo "WARNING: $VALUE already exists... will overwrite."
                     fi
-                    BED_FILE="$VALUE"
+                    COUNT_FILE="$VALUE"
                     ;;
                 "REF_GENOME")
                     if [[ -s $VALUE ]]; then
@@ -142,7 +142,7 @@ if [[ -s $PARAM_FILE ]]; then
 fi
 
 echo "INFO: Setting DEMUX_DIRECTORY to $DEMUX_DIRECTORY"
-echo "INFO: Setting BED_FILE to $BED_FILE"
+echo "INFO: Setting COUNT_FILE to $COUNT_FILE"
 echo "INFO: Setting REF_GENOME to $REF_GENOME"
 echo "INFO: Setting ANNOTATION_FILE to $ANNOTATION_FILE"
 echo "INFO: Setting MIN_LENGTH to $MIN_LENGTH"
@@ -280,22 +280,22 @@ fi
 echo "INFO: Generating read counts. Please wait..."
 
 # add header with gff columns + sample names
-echo -ne "amplicon\t" > "$BED_FILE"
-cat bams.txt | sed "s|alignments/||" | sed "s|.proper_pairs.bam||" | tr '\n' '\t' >> "$BED_FILE"
+echo -ne "amplicon\t" > "$COUNT_FILE"
+cat bams.txt | sed "s|alignments/||" | sed "s|.proper_pairs.bam||" | tr '\n' '\t' >> "$COUNT_FILE"
 FAILED_SAMPLES=$(echo -e "${bad_demux}${BAD_QC}${BAD_ALIGNMENT}")
-echo "$FAILED_SAMPLES" | sed "s|\(bad_[a-z]\+\)/\(.*\)|\2-\1|" | tr '\n' '\t' >> "$BED_FILE"
-sed -i "s/\t$/\n/" "$BED_FILE"
+echo "$FAILED_SAMPLES" | sed "s|\(bad_[a-z]\+\)/\(.*\)|\2-\1|" | tr '\n' '\t' >> "$COUNT_FILE"
+sed -i "s/\t$/\n/" "$COUNT_FILE"
 
 N_FAILED=$(echo "$FAILED_SAMPLES" | wc -l)
 FAILED_COUNTS=$(printf '\t0%.0s' $(seq 0 $N_FAILED))
 
 # get read counts per amplicon with htseq-count
-htseq-count -r pos -s no -t "amplicon" -i "ID" -n "$NTHREADS" `cat bams.txt` "$ANNOTATION_FILE" | sed "s/$/$FAILED_COUNTS/" >> "$BED_FILE" && \
-echo "INFO: Read counts per gene/amplicon for all samples can be found in $BED_FILE (amplicons as rows)"
+htseq-count -r pos -s no -t "amplicon" -i "ID" -n "$NTHREADS" `cat bams.txt` "$ANNOTATION_FILE" | sed "s/$/$FAILED_COUNTS/" >> "$COUNT_FILE" && \
+echo "INFO: Read counts per gene/amplicon for all samples can be found in $COUNT_FILE (amplicons as rows)"
 
 # Check to make sure final output is produced
-if [ ! -s "$BED_FILE" ]; then
-    echo "ERROR: Could not create read count file $BED_FILE"
+if [ ! -s "$COUNT_FILE" ]; then
+    echo "ERROR: Could not create read count file $COUNT_FILE"
     exit 1
 fi
 
