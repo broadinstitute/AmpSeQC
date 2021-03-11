@@ -291,10 +291,10 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
 def process_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_length=70, min_bq=20, max_N=1, max_insert_size=500, soft_clip=5, bowtie2=False, no_fastqc=False):
     """QC and align sample"""
     if not qc_sample(sample, fwd, rvs, ref=ref, two_color=two_color, min_length=min_length, min_bq=min_bq, max_N=max_N, no_fastqc=no_fastqc):
-        return "bad_qc"
+        return (sample, "bad_qc")
     if not align_sample(sample, ref=ref, max_insert_size=max_insert_size, soft_clip=soft_clip, bowtie2=bowtie2, no_fastqc=no_fastqc):
-        return "bad_alignment"
-    return "good_alignment"
+        return (sample, "bad_alignment")
+    return (sample, "good_alignment")
 
 
 def filter_count_data(count_data, min_sample_count=0, min_amplicon_count = 0):
@@ -402,10 +402,14 @@ def main():
         print("INFO: Using %d processors" % args.procs, file=sys.stderr)
         with Pool(processes=args.procs) as pool:
             pool_args = [(sample, samples[sample][0], samples[sample][1], args.ref, args.two_color, args.min_length, args.min_bq, args.max_N, args.max_insert_size, args.soft_clip, args.bowtie2, args.no_fastqc) for sample in samples]
-            result = pool.starmap_async(process_sample, pool_args)
-            qc_results = result.get()
+            starmap_async = pool.starmap_async(process_sample, pool_args)
+            results = starmap_async.get()
+            qc_results = {}
+            for (sample, result) in results:
+                qc_results[sample] = result
+
     else:
-        qc_results = {sample: process_sample(sample, samples[sample][0], samples[sample][1], ref=args.ref, two_color=args.two_color, min_length=args.min_length, min_bq=args.min_bq, max_N=args.max_N, max_insert_size=args.max_insert_size, soft_clip=args.soft_clip, bowtie2=args.bowtie2, no_fastqc=args.no_fastqc) for sample in samples}
+        qc_results = {sample: process_sample(sample, samples[sample][0], samples[sample][1], ref=args.ref, two_color=args.two_color, min_length=args.min_length, min_bq=args.min_bq, max_N=args.max_N, max_insert_size=args.max_insert_size, soft_clip=args.soft_clip, bowtie2=args.bowtie2, no_fastqc=args.no_fastqc)[1] for sample in samples}
     
     bad_qc = sorted([sample for sample in qc_results if qc_results[sample] == "bad_qc"])
     bad_alignment = sorted([sample for sample in qc_results if qc_results[sample] == "bad_alignment"])
