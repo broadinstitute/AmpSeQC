@@ -169,9 +169,9 @@ def qc_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_leng
 
     try:
         # TODO: make this more pythonic, less shell
-        subprocess.run(shlex.split("gzip -c qc/%s*_R1_*.fq > %s" % (sample, read1)), shell=True, check=True)
-        subprocess.run(shlex.split("gzip -c qc/%s*_R2_*.fq > %s" % (sample, read2)), shell=True, check=True)
-        subprocess.run(shlex.split("rm -f qc/%s*.fq" % (sample)), shell=True, check=True)
+        subprocess.run("gzip -c qc/%s*_R1_*.fq > %s" % (sample, read1), shell=True, check=True)
+        subprocess.run("gzip -c qc/%s*_R2_*.fq > %s" % (sample, read2), shell=True, check=True)
+        subprocess.run("rm -f qc/%s*.fq" % (sample), shell=True, check=True)
     except:
         print("ERROR: Failed to process QC-ed files for %s" % sample, file=sys.stderr)
         return
@@ -199,16 +199,16 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
     if bowtie2:
         pass #NYI
     else:
-        subprocess.run(shlex.split("bwa mem -I '200,100,%d,50' %s %s %s > alignments/%s.sam" % (max_insert_size, ref, read1, read2, sample)), shell=True, check=True, stderr=w)
+        subprocess.run(shlex.split("bwa mem -I '200,100,%d,50' %s %s %s > alignments/%s.sam" % (max_insert_size, ref, read1, read2, sample)), check=True, stderr=w)
         if os.path.isfile("alignments/%s.sam"):
-            output = subprocess.run(shlex.split("samtools flagstat alignments/%s.sam | head -n 1 | awk '{ print $1 }'" % sample), shell=True, check=True, stdout=subprocess.PIPE, stderr=w)
+            output = subprocess.run(shlex.split("samtools flagstat alignments/%s.sam | head -n 1 | awk '{ print $1 }'" % sample), check=True, stdout=subprocess.PIPE, stderr=w)
             if int(output.stdout) > 0:
-                subprocess.run(shlex.split("samclip --ref {ref} --max {soft_clip} alignments/{sample}.sam \
+                subprocess.run("samclip --ref {ref} --max {soft_clip} alignments/{sample}.sam \
                     | samtools fixmate - - | samtools view -bf 3 | samtools sort -T alignments/{sample} > alignments/{sample}.proper_pairs.bam && \
-                        samtools index alignments/{sample}.proper_pairs.bam && samtools sort -T alignments/{sample} alignments/{sample}.sam > alignments/{sample}.bam".format(ref=ref, soft_clip=soft_clip, sample=sample)), check=True, shell=True, stderr=w)
+                        samtools index alignments/{sample}.proper_pairs.bam && samtools sort -T alignments/{sample} alignments/{sample}.sam > alignments/{sample}.bam".format(ref=ref, soft_clip=soft_clip, sample=sample), check=True, shell=True, stderr=w)
                 os.remove("alignments/%s.sam" % sample)
                 if os.path.isfile("alignments/%s.proper_pairs.bam" % sample):
-                    output = subprocess.run(shlex.split("samtools flagstat alignments/%s.proper_pairs.bam | head -n 1 | awk '{ print $1 }'" % sample), shell=True, check=True, stdout=subprocess.PIPE, stderr=w)
+                    output = subprocess.run(shlex.split("samtools flagstat alignments/%s.proper_pairs.bam | head -n 1 | awk '{ print $1 }'" % sample), check=True, stdout=subprocess.PIPE, stderr=w)
                     if int(output.stdout) > 0:
                         print("INFO: Alignment of %s finished with %s reads." % (sample, output.stdout), file=sys.stderr)
                     else:
@@ -223,7 +223,7 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
     w.close()
     if not no_fastqc:
         try:
-            subprocess.run(shlex.split("fastqc -o fastqc_aligned --noextract -f bam alignments/%s.proper_pairs.bam" % sample), shell=True, check=True)
+            subprocess.run(shlex.split("fastqc -o fastqc_aligned --noextract -f bam alignments/%s.proper_pairs.bam" % sample), check=True)
         except KeyboardInterrupt:
             raise KeyboardInterrupt
         except SystemExit:
@@ -290,7 +290,7 @@ def run_multiqc():
     
     for cmd in cmds:
         try:
-            subprocess.run(shlex.split(cmd), check=True, shell=True)
+            subprocess.run(shlex.split(cmd), check=True)
         except KeyboardInterrupt:
             break
         except SystemExit:
@@ -358,6 +358,10 @@ def main():
 INFO: Bad demux (no sequencing data): %d
 INFO: Bad QC (failed Trim-Galore): %d
 INFO: Bad alignment (no properly aligned reads): %d""" % (len(good_alignment), len(bad_demux), len(bad_qc), len(bad_alignment)), file=sys.stderr)
+    
+    if not good_alignment:
+        print("ERROR: No good data to process. Exiting...", file=sys.stderr)
+        sys.exit(1)
     
     print("INFO: Running htseq-count to generate read counts per amplicon per sample. Please wait...", file=sys.stderr)
     count_data = {sample: {} for sample in good_alignment}
