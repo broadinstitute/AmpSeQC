@@ -22,6 +22,7 @@ def _fastq_reads(file):
     i = 0
     for line in f:
         i += 1
+    f.close()
     return i / 4
 
 def parse_fastq(files):
