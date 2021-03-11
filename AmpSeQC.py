@@ -215,7 +215,7 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
                 if os.path.isfile("alignments/%s.proper_pairs.bam" % sample):
                     output = subprocess.run("samtools flagstat alignments/%s.proper_pairs.bam | head -n 1 | awk '{ print $1 }'" % sample, shell=True, check=True, stdout=subprocess.PIPE, stderr=w, text=True)
                     if int(output.stdout.strip()) > 0:
-                        print("INFO: Alignment of %s finished with %s reads." % (sample, output.stdout.strip()), file=sys.stderr)
+                        print("INFO: Alignment of %s finished with %d paired reads." % (sample, int(output.stdout.strip())/2), file=sys.stderr)
                     else:
                         print("WARNING: Alignment of %s finished without any good aligned reads." % sample, file=sys.stderr)
                 else:
