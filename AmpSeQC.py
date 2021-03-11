@@ -163,8 +163,8 @@ def qc_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_leng
             print("ERROR: Trim-Galore failed on %s" % sample)
             return
 
-    read1 = "qc/$%s_R1.fastq.gz" % sample
-    read2 = "qc/$%s_R2.fastq.gz" % sample
+    read1 = "qc/%s_R1.fastq.gz" % sample
+    read2 = "qc/%s_R2.fastq.gz" % sample
 
     try:
         # TODO: make this more pythonic, less shell
@@ -191,8 +191,8 @@ def qc_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_leng
     
 
 def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5, bowtie2=False, no_fastqc=False):
-    read1 = "qc/$%s_R1.fastq.gz" % sample
-    read2 = "qc/$%s_R2.fastq.gz" % sample
+    read1 = "qc/%s_R1.fastq.gz" % sample
+    read2 = "qc/%s_R2.fastq.gz" % sample
 
     w = open("logs/%s.alignment.log", "w")
     if bowtie2:
