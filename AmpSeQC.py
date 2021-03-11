@@ -15,20 +15,20 @@ from multiprocessing import Pool
 from argparse import ArgumentParser
 
 def check_commands(no_fastqc=False, bowtie2=False):
-    cmds = ["trim_galore", "samtools", "htseq-count"]
+    cmds = [["trim_galore", "--version"], ["samtools", "--version"], ["htseq-count", "--version"]]
     
     if not no_fastqc:
-        cmds.extend(["fastqc", "multiqc"])
+        cmds.extend([["fastqc", "--version"], ["multiqc", "--version"]])
 
     if bowtie2:
-        cmds.append("bowtie2")
+        cmds.append(["bowtie2", "--version"])
     else:
-        cmds.extend(["bwa", "samclip"])
+        cmds.extend(["bwa", ["samclip", "--version"]])
     
     missing = False
     for cmd in cmds:
         try:
-            subprocess.run(cmd)
+            subprocess.run(cmd, capture_output=True)
         except KeyboardInterrupt:
             sys.exit(1)
         except SystemExit:
