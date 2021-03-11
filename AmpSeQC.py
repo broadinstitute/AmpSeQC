@@ -391,6 +391,8 @@ def main():
     samples, bad_demux = parse_fastq(args.fastq)
 
     for folder in ["qc", "alignments", "logs", "fastqc_preqc", "fastqc_postqc", "fastqc_aligned"]:
+        if args.no_fastqc and "fastqc" in folder:
+            continue
         try:
             shutil.rmtree(folder)
         except FileNotFoundError:
