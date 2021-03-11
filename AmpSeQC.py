@@ -203,7 +203,7 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
     w = open(f"logs/{sample}.alignment.log", "w")
     good = False
     if bowtie2:
-        subprocess.run(f"bowtie2 -X {max_insert_size} --very-sensitive -x {ref} -1 {read1} -2 {read2} | samtools sort -T alignments/{sample} > alignments/{sample}.bam && samtools index alignments/{sample}.bam", shell=True, check=True, stderr=w)
+        subprocess.run(f"bowtie2 -X {max_insert_size} -I 50 --very-sensitive -x {ref} -1 {read1} -2 {read2} | samtools sort -T alignments/{sample} > alignments/{sample}.bam && samtools index alignments/{sample}.bam", shell=True, check=True, stderr=w)
         if os.path.isfile(f"alignments/{sample}.bam"):
             output = subprocess.run("samtools flagstat alignments/%s.bam | head -n 1 | awk '{ print $1 }'" % sample, shell=True, check=True, stdout=subprocess.PIPE, stderr=w, text=True)
             if int(output.stdout.strip()) > 0:
