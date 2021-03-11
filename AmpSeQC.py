@@ -23,7 +23,7 @@ def check_commands(no_fastqc=False, bowtie2=False):
     if bowtie2:
         cmds.append("bowtie2 --version")
     else:
-        cmds.extend(["bwa mem", "samclip --version"])
+        cmds.extend(["bwa", "samclip --version"])
     
     missing = False
     for cmd in cmds:
