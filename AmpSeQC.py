@@ -14,6 +14,33 @@ from multiprocessing import Pool
 
 from argparse import ArgumentParser
 
+def check_commands(no_fastqc=False, bowtie2=False):
+    cmds = ["trim_galore --version", "samtools --version", "htseq-count --version"]
+    
+    if not no_fastqc:
+        cmds.extend(["fastqc --version", "multiqc --version"])
+
+    if bowtie2:
+        cmds.append("bowtie2 --version")
+    else:
+        cmds.extend(["bwa mem", "samclip --version"])
+    
+    missing = False
+    for cmd in cmds:
+        try:
+            subprocess.run(cmd, check=True, shell=True)
+        except KeyboardInterrupt:
+            sys.exit(1)
+        except SystemExit:
+            raise SystemExit
+        except:
+            missing = True
+            print("ERROR: Cannot run %s. Check if program is installed and try again." % cmd)
+    
+    if missing:
+        sys.exit(1)
+
+
 def _fastq_reads(file):
     if "q.gz" in file:
         f = gzip.open(file, "rt")
@@ -289,6 +316,8 @@ def main():
     parser.add_argument("--no_fastqc", action="store_true", default=False, help="Do not run FastQC or MultiQC")
     parser.add_argument("-p", "--procs", type=int, default=1, help="Number of processors to use (default: 1)")
     args = parser.parse_args()
+
+    check_commands(no_fastqc=args.no_fastqc, bowtie2=args.bowtie2)
 
     samples, bad_demux = parse_fastq(args.fastq)
 
