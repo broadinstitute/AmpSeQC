@@ -55,7 +55,9 @@ This set of scripts will run sequencing quality control, alignments (with bowtie
 **Make sure you have activated the ampseqc conda environment `source activate ampseqc`!**
 
 You can run the script like so.
+
 `python3 /path/to/AmpSeQC/AmpSeQC.py -c output_read_counts.tsv -r /path/to/reference.fasta -a /path/to/annotations.gff fastq_R1.fq.gz fastq_R2.fq.gz ...`
+
 where
 - `output_read_counts.tsv` is the file you want your read counts to go to
 - `/path/to/reference.fasta` is a samtools and bwa or bowtie2 indexed fasta file of your reference
