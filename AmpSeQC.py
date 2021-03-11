@@ -274,8 +274,6 @@ def run_multiqc():
 def main():
     parser = ArgumentParser(description="Amplicon sequencing quality control pipeline", usage="%(prog)s [options] -c [read_counts] -r [ref.fasta] -a [annot.gff] fastq [fastq ...]")
     parser.add_argument("fastq", nargs="+", help="Fastq file(s) to analyze (expects paired-end reads in separate files)")
-    parser.add_argument("--min_amplicon_count", type=int, default=0, help="Minimum total read count to retain an amplicon (default: 0)")
-    parser.add_argument("--min_sample_count", type=int, default=0, help="Minimum total read count to retain a sample (default: 0)")
     parser.add_argument("-c", "--counts", default="read_counts.tsv", help="Read count tsv file (default: read_counts.tsv)")
     parser.add_argument("-r", "--ref", default="reference.fasta", help="Indexed reference fasta file to align to (default: reference.fasta")
     parser.add_argument("-a", "--annot", default="amplicons.gff", help="Amplicon/gene gff3 file to generate read counts of (default: amplicons.gff)")
@@ -286,6 +284,8 @@ def main():
     parser.add_argument("-I", "--max_insert_size", type=int, default=500, help="Maximum insert size (in bp) expected for aligner (default: 500)")
     parser.add_argument("-S", "--soft_clip", type=int, default=5, help="Maximum soft clipping (in bp) allowed for BWA-Mem (default: 5)")
     parser.add_argument("--bowtie2", action="store_true", default=False, help="Align with Bowtie2 instead of BWA-Mem (default: False)")
+    parser.add_argument("--min_amplicon_count", type=int, default=0, help="Minimum total read count to retain an amplicon (default: 0)")
+    parser.add_argument("--min_sample_count", type=int, default=0, help="Minimum total read count to retain a sample (default: 0)")
     parser.add_argument("--no_fastqc", action="store_true", default=False, help="Do not run FastQC or MultiQC")
     parser.add_argument("-p", "--procs", type=int, default=1, help="Number of processors to use (default: 1)")
     args = parser.parse_args()
