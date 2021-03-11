@@ -9,6 +9,7 @@ import sys
 import gzip
 import shutil
 import subprocess
+import shlex
 
 from multiprocessing import Pool
 
@@ -133,7 +134,7 @@ def run_fastqc(read1, read2, out):
     """Run FastQC on a set of paired reads"""
     cmd = "fastqc -o %s --noextract -f fastq %s %s" % (out, read1, read2)
     try:
-        subprocess.run(cmd, check=True)
+        subprocess.run(shlex.split(cmd), check=True)
     except KeyboardInterrupt:
         raise KeyboardInterrupt
     except SystemExit:
@@ -156,7 +157,7 @@ def qc_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_leng
     else:
         cmd = "trim_galore --paired --length %d -q %d --max_n %d --dont_gzip -o qc %s %s" % (min_length, min_bq, max_N, fwd, rvs)
     
-    output = subprocess.run(cmd, check=True, stdout="logs/%s.trim_galore.out" % sample, stderr="logs/%s.trim_galore.err" % sample)
+    output = subprocess.run(shlex.split(cmd), check=True, stdout="logs/%s.trim_galore.out" % sample, stderr="logs/%s.trim_galore.err" % sample)
     if output.returncode:
         print("ERROR: Trim-Galore failed on %s" % sample)
         return
@@ -166,9 +167,9 @@ def qc_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_leng
 
     try:
         # TODO: make this more pythonic, less shell
-        subprocess.run("gzip -c qc/%s*_R1_*.fq > %s" % (sample, read1), shell=True, check=True)
-        subprocess.run("gzip -c qc/%s*_R2_*.fq > %s" % (sample, read2), shell=True, check=True)
-        subprocess.run("rm -f qc/%s*.fq" % (sample), shell=True, check=True)
+        subprocess.run(shlex.split("gzip -c qc/%s*_R1_*.fq > %s" % (sample, read1)), shell=True, check=True)
+        subprocess.run(shlex.split("gzip -c qc/%s*_R2_*.fq > %s" % (sample, read2)), shell=True, check=True)
+        subprocess.run(shlex.split("rm -f qc/%s*.fq" % (sample)), shell=True, check=True)
     except:
         print("ERROR: Failed to process QC-ed files for %s" % sample, file=sys.stderr)
         return
@@ -196,16 +197,16 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
     if bowtie2:
         pass
     else:
-        subprocess.run("bwa mem -I '200,100,%d,50' %s %s %s" % (max_insert_size, ref, read1, read2), shell=True, check=True, stderr=w, stdout="alignments/%s.sam" % sample)
+        subprocess.run(shlex.split("bwa mem -I '200,100,%d,50' %s %s %s" % (max_insert_size, ref, read1, read2)), shell=True, check=True, stderr=w, stdout="alignments/%s.sam" % sample)
         if os.path.isfile("alignments/%s.sam"):
-            output = subprocess.run("samtools flagstat alignments/%s.sam | head -n 1 | awk '{ print $1 }'" % sample, shell=True, check=True, stdout=subprocess.PIPE, stderr=w)
+            output = subprocess.run(shlex.split("samtools flagstat alignments/%s.sam | head -n 1 | awk '{ print $1 }'" % sample), shell=True, check=True, stdout=subprocess.PIPE, stderr=w)
             if int(output.stdout) > 0:
-                subprocess.run("samclip --ref {ref} --max {soft_clip} alignments/{sample}.sam \
+                subprocess.run(shlex.split("samclip --ref {ref} --max {soft_clip} alignments/{sample}.sam \
                     | samtools fixmate - - | samtools view -bf 3 | samtools sort -T alignments/{sample} > alignments/{sample}.proper_pairs.bam && \
-                        samtools index alignments/{sample}.proper_pairs.bam && samtools sort -T alignments/{sample} alignments/{sample}.sam > alignments/{sample}.bam".format(ref=ref, soft_clip=soft_clip, sample=sample), check=True, shell=True, stderr=w)
+                        samtools index alignments/{sample}.proper_pairs.bam && samtools sort -T alignments/{sample} alignments/{sample}.sam > alignments/{sample}.bam".format(ref=ref, soft_clip=soft_clip, sample=sample)), check=True, shell=True, stderr=w)
                 os.remove("alignments/%s.sam" % sample)
                 if os.path.isfile("alignments/%s.proper_pairs.bam" % sample):
-                    output = subprocess.run("samtools flagstat alignments/%s.proper_pairs.bam | head -n 1 | awk '{ print $1 }'" % sample, shell=True, check=True, stdout=subprocess.PIPE, stderr=w)
+                    output = subprocess.run(shlex.split("samtools flagstat alignments/%s.proper_pairs.bam | head -n 1 | awk '{ print $1 }'" % sample), shell=True, check=True, stdout=subprocess.PIPE, stderr=w)
                     if int(output.stdout) > 0:
                         print("INFO: Alignment of %s finished with %s reads." % (sample, output.stdout), file=sys.stderr)
                     else:
@@ -220,7 +221,7 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
 
     if not no_fastqc:
         try:
-            subprocess.run("fastqc -o fastqc_aligned --noextract -f bam alignments/%s.proper_pairs.bam" % sample, shell=True, check=True, stderr=w)
+            subprocess.run(shlex.split("fastqc -o fastqc_aligned --noextract -f bam alignments/%s.proper_pairs.bam" % sample), shell=True, check=True, stderr=w)
         except KeyboardInterrupt:
             raise KeyboardInterrupt
         except SystemExit:
@@ -280,14 +281,14 @@ def filter_count_data(count_data, min_sample_count=0, min_amplicon_count = 0):
 
 def run_multiqc():
     """Run MultiQC"""
-    cmds = ["multiqc --force --dirs --outdir multiqc_report_full --export --interactive . &> logs/multiqc.log", \
-            "multiqc --force --dirs --outdir multiqc_report_preqc --export --interactive fastqc_preqc/ &>> logs/multiqc.log", \
-            "multiqc --force --dirs --outdir multiqc_report_postqc --export --interactive fastqc_postqc/ &>> logs/multiqc.log", \
-            "multiqc --force --dirs --outdir multiqc_report_aligned --export --interactive fastqc_aligned/ &>> logs/multiqc.log"]
+    cmds = ["multiqc --force --dirs --outdir multiqc_report_full --export --interactive .", \
+            "multiqc --force --dirs --outdir multiqc_report_preqc --export --interactive fastqc_preqc/", \
+            "multiqc --force --dirs --outdir multiqc_report_postqc --export --interactive fastqc_postqc/", \
+            "multiqc --force --dirs --outdir multiqc_report_aligned --export --interactive fastqc_aligned/"]
     
     for cmd in cmds:
         try:
-            subprocess.run(cmd, check=True, shell=True)
+            subprocess.run(shlex.split(cmd), check=True, shell=True)
         except KeyboardInterrupt:
             break
         except SystemExit:
@@ -320,6 +321,7 @@ def main():
 
     check_commands(no_fastqc=args.no_fastqc, bowtie2=args.bowtie2)
 
+    print("INFO: Parsing fastq files. Please wait...")
     samples, bad_demux = parse_fastq(args.fastq)
 
     for folder in ["qc", "alignments", "bad_qc", "bad_alignment", "good_bams", "logs", "fastqc_preqc", "fastqc_postqc", "fastqc_aligned"]:
@@ -329,7 +331,7 @@ def main():
             pass
         os.mkdir(folder)
     
-    print("QC-ing %d samples. Please wait..." % len(samples), file=sys.stderr)
+    print("INFO: QC-ing %d samples. Please wait..." % len(samples), file=sys.stderr)
     
     if args.procs > 1:
         print("INFO: Using %d processors" % args.procs, file=sys.stderr)
@@ -353,7 +355,7 @@ def main():
     print("INFO: Running htseq-count to generate read counts per amplicon per sample. Please wait...", file=sys.stderr)
     count_data = {sample: {} for sample in good_alignment}
     amplicons = []
-    output = subprocess.run("htseq-count -r pos -s no -t 'amplicon' -i 'ID' -n %d %s %s" % (args.procs, bams, args.annot), capture_output=True, check=True)
+    output = subprocess.run(shlex.split("htseq-count -r pos -s no -t 'amplicon' -i 'ID' -n %d %s %s" % (args.procs, bams, args.annot)), capture_output=True, check=True)
     for line in output.stdout.split("\n"):
         line = line.split()
         amplicon = line[0]
