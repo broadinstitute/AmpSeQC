@@ -157,10 +157,11 @@ def qc_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_leng
     else:
         cmd = "trim_galore --paired --length %d -q %d --max_n %d --dont_gzip -o qc %s %s" % (min_length, min_bq, max_N, fwd, rvs)
     
-    output = subprocess.run(shlex.split(cmd), check=True, stdout="logs/%s.trim_galore.out" % sample, stderr="logs/%s.trim_galore.err" % sample)
-    if output.returncode:
-        print("ERROR: Trim-Galore failed on %s" % sample)
-        return
+    with open("logs/%s.trim_galore.log" % sample, "w") as w:
+        output = subprocess.run(shlex.split(cmd), check=True, stdout=w, stderr=w)
+        if output.returncode:
+            print("ERROR: Trim-Galore failed on %s" % sample)
+            return
 
     read1 = "qc/$%s_R1.fastq.gz" % sample
     read2 = "qc/$%s_R2.fastq.gz" % sample
@@ -193,11 +194,11 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
     read1 = "qc/$%s_R1.fastq.gz" % sample
     read2 = "qc/$%s_R2.fastq.gz" % sample
 
-    w = open("logs/%s.alignment.err", "w")
+    w = open("logs/%s.alignment.log", "w")
     if bowtie2:
-        pass
+        pass #NYI
     else:
-        subprocess.run(shlex.split("bwa mem -I '200,100,%d,50' %s %s %s" % (max_insert_size, ref, read1, read2)), shell=True, check=True, stderr=w, stdout="alignments/%s.sam" % sample)
+        subprocess.run(shlex.split("bwa mem -I '200,100,%d,50' %s %s %s > alignments/%s.sam" % (max_insert_size, ref, read1, read2, sample)), shell=True, check=True, stderr=w)
         if os.path.isfile("alignments/%s.sam"):
             output = subprocess.run(shlex.split("samtools flagstat alignments/%s.sam | head -n 1 | awk '{ print $1 }'" % sample), shell=True, check=True, stdout=subprocess.PIPE, stderr=w)
             if int(output.stdout) > 0:
@@ -218,10 +219,10 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
         else:
             print("ERROR: No alignment file for %s!" % sample, file=sys.stderr)
             return False
-
+    w.close()
     if not no_fastqc:
         try:
-            subprocess.run(shlex.split("fastqc -o fastqc_aligned --noextract -f bam alignments/%s.proper_pairs.bam" % sample), shell=True, check=True, stderr=w)
+            subprocess.run(shlex.split("fastqc -o fastqc_aligned --noextract -f bam alignments/%s.proper_pairs.bam" % sample), shell=True, check=True)
         except KeyboardInterrupt:
             raise KeyboardInterrupt
         except SystemExit:
@@ -229,7 +230,7 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
         except Exception as e:
             print(e, file=sys.stderr)
             print("WARNING: Could not run FastQC on aligned data!", file=sys.stderr)
-    w.close()
+    
 
     return True
 
