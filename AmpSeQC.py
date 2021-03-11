@@ -18,7 +18,7 @@ def _fastq_reads(file):
     if "q.gz" in file:
         f = gzip.open(file, "rt")
     else:
-        f = open(file, "rt")
+        f = open(file)
     i = 0
     for line in f:
         i += 1
