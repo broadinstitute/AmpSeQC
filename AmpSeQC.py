@@ -359,7 +359,7 @@ def run_multiqc():
 
 def main():
     parser = ArgumentParser(description="Amplicon sequencing quality control pipeline", usage="%(prog)s [options] -c [read_counts] -r [ref.fasta] -a [annot.gff] fastq [fastq ...]")
-    parser.add_argument("fastq", nargs="+", help="Fastq file(s) to analyze (expects paired-end reads in separate files)")
+    parser.add_argument("fastq", nargs="+", help="Fastq file(s) to analyze (expects paired-end reads as two separate files)")
     parser.add_argument("-c", "--counts", default="read_counts.tsv", help="Read count tsv file (default: read_counts.tsv)")
     parser.add_argument("-r", "--ref", default="reference.fasta", help="Indexed reference fasta file to align to (default: reference.fasta)")
     parser.add_argument("-a", "--annot", default="amplicons.gff", help="Amplicon/gene gff3 file to generate read counts of (default: amplicons.gff)")
@@ -379,6 +379,13 @@ def main():
     if not args.fastq:
         parser.print_help()
         print("ERROR: No fastq files specified!", file=sys.stderr)
+        sys.exit(1)
+
+    if not os.path.isfile(args.ref):
+        print(f"ERROR: {args.ref} cannot be found!", file=sys.stderr)
+        sys.exit(1)
+    if not os.path.isfile(args.annot):
+        print(f"ERROR: {args.annot} cannot be found!", file=sys.stderr)
         sys.exit(1)
 
     check_commands(no_fastqc=args.no_fastqc, bowtie2=args.bowtie2)
