@@ -336,7 +336,7 @@ def main():
     print("INFO: Parsing fastq files. Please wait...")
     samples, bad_demux = parse_fastq(args.fastq)
 
-    for folder in ["qc", "alignments", "bad_qc", "bad_alignment", "good_bams", "logs", "fastqc_preqc", "fastqc_postqc", "fastqc_aligned"]:
+    for folder in ["qc", "alignments", "logs", "fastqc_preqc", "fastqc_postqc", "fastqc_aligned"]:
         try:
             shutil.rmtree(folder)
         except FileNotFoundError:
@@ -359,7 +359,7 @@ def main():
     good_alignment = sorted([sample for sample in qc_results if qc_results[sample] == "good_alignment"])
     bams = " ".join(["alignments/%s.proper_pairs.bam" % sample for sample in good_alignment])
 
-    print("""INFO: Good data: %d
+    print("""INFO: Aligned samples: %d
 INFO: Bad demux (no sequencing data): %d
 INFO: Bad QC (failed Trim-Galore): %d
 INFO: Bad alignment (no properly aligned reads): %d""" % (len(good_alignment), len(bad_demux), len(bad_qc), len(bad_alignment)), file=sys.stderr)
@@ -398,16 +398,15 @@ INFO: Bad alignment (no properly aligned reads): %d""" % (len(good_alignment), l
     
     if args.min_sample_count:
         low_alignment = [sample for sample in good_alignment if sample not in count_data]
-        print("INFO: Filtered %d / %d aligned samples due to low read counts (< %d total)" %(len(low_alignment), len(good_alignment), args.min_sample_count), file=sys.stderr)
+        print("INFO: Filtered %d / %d samples due to low read counts (< %d total)" %(len(low_alignment), len(good_alignment), args.min_sample_count), file=sys.stderr)
     
-
     print("INFO: Writing read counts to %s" % args.counts, file=sys.stderr)
-    zero_line = "\t0" * len(amplicons)
     with open(args.counts, "w") as w:
         w.write("sample\t" + "\t".join(amplicons)+"\n")
         for sample in sorted(count_data):
             w.write(sample+"\t"+"\t".join(["%d" % count_data[sample][amplicon] for amplicon in amplicons])+"\n")
         if args.min_sample_count <= 0:
+            zero_line = "\t0" * len(amplicons)
             for sample in bad_demux:
                 w.write("%s.bad_demux%s\n" %(sample, zero_line))
             for sample in bad_qc:
