@@ -164,7 +164,7 @@ def run_fastqc(read1, read2, out):
     """Run FastQC on a set of paired reads"""
     cmd = "fastqc -o %s --noextract -f fastq %s %s" % (out, read1, read2)
     try:
-        subprocess.run(shlex.split(cmd), check=True)
+        subprocess.run(shlex.split(cmd), check=True, capture_output=True)
     except KeyboardInterrupt:
         raise KeyboardInterrupt
     except SystemExit:
