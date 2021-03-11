@@ -374,12 +374,18 @@ INFO: Bad alignment (no properly aligned reads): %d""" % (len(good_alignment), l
     output = subprocess.run(shlex.split("htseq-count -r pos -s no -t 'amplicon' -i 'ID' -n %d %s %s" % (args.procs, bams, args.annot)), capture_output=True, check=True, text=True)
     for line in output.stdout.split("\n"):
         line = line.split()
+        if not line:
+            continue
         amplicon = line[0]
         amplicons.append(amplicon)
         counts = [int(x) for x in line[1:]]
         for i, sample in enumerate(good_alignment):
             count_data[sample][amplicon] = counts[i]
     
+    if not count_data:
+        print("ERROR: Could not generate count data!", file=sys.stderr)
+        sys.exit(1)
+
     if args.min_sample_count > 0 or args.min_amplicon_count > 0:
         count_data = filter_count_data(count_data, min_sample_count=args.min_sample_count, min_amplicon_count=args.min_amplicon_count)
     
