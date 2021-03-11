@@ -1,14 +1,12 @@
-# AmpSeQC
-A general multiplexed amplicon sequencing and quality control pipeline specifically built for *Plasmodium falciparum* data
+AmpSeQC: Amplicon Sequencing Quality Control
+============================================
 
-**Input**: directory of demuxed fastq files, gff3 file of amplicon panel or genes, optional parameter file
+A general multiplexed amplicon sequencing and quality control pipeline specifically built
+for *Plasmodium falciparum* data
 
-**Output**: tsv file of read counts per amplicon/gene per sample
+**Input**: paired-end fastq files, reference genome, gff3 annotaiton file of amplicon panel or genes
 
-Contact [Tim Straub](mailto:tim.straub@broadinstitute.org) for any questions.
-
-## Description
-This set of scripts will run sequencing quality control, alignments (with bowtie2), and generate read count per amplicon (or gene) per sample. It will also run FastQC on pre-QC, post-QC, and aligned reads. It uses an UGER task array to parallelize QC and alignment per sample.
+**Output**: tsv file of read counts per amplicon/gene per sample, MultiQC reports
 
 ### Steps in pipeline
 1. Search for and validate paired-end fastq files in `DEMUX_DIRECTORY`
@@ -21,28 +19,32 @@ This set of scripts will run sequencing quality control, alignments (with bowtie
 8. Run MultiQC to collate all FastQC results into reports.
 9. Once all samples finished aligning, generate read counts using `bedtools multicov`.
 
-## Dependencies
-- Python>=3.7
-- Bowtie2
-- BWA
-- FastQC
-- HTSeq
-- MultiQC
-- Samclip
-- Samtools
-- Trim-Galore
+Dependencies
+------------
 
-## Installation
+* Python>=3.7
+* Bowtie2
+* BWA
+* FastQC
+* HTSeq
+* MultiQC
+* Samclip
+* Samtools
+* Trim-Galore
+
+Installation
+------------
+
 1. Install Anaconda or miniconda (if not already installed)
-2. Clone Github repository
+2. Clone Github repository:
     
     `git clone https://github.com/broadinstitute/AmpSeQC.git`
 
-3. Move into the directory.
+3. Move into the directory:
     
     `cd AmpSeQC`
 
-4. Create a new conda environment
+4. Create a new conda environment:
     
     `conda env create -f environment.yml`
 
@@ -50,7 +52,8 @@ This set of scripts will run sequencing quality control, alignments (with bowtie
 
     `source activate ampseqc`
 
-## Quick start guide
+Quick start guide
+-----------------
 
 **Make sure you have activated the ampseqc conda environment `source activate ampseqc`!**
 
@@ -59,10 +62,10 @@ You can run the script like so.
 `python3 /path/to/AmpSeQC/AmpSeQC.py -c output_read_counts.tsv -r /path/to/reference.fasta -a /path/to/annotations.gff fastq_R1.fq.gz fastq_R2.fq.gz ...`
 
 where
-- `output_read_counts.tsv` is the file you want your read counts to go to
-- `/path/to/reference.fasta` is a samtools and bwa or bowtie2 indexed fasta file of your reference
-- `/path/to/annotations.gff` is a gff3 file of your amplicons/genes you want read counts for
-- `fastq_R1.fq.gz` and `fastq_R2.fq.gz` are paired-end reads in fastq format
+* `output_read_counts.tsv` is the file you want your read counts to go to
+* `/path/to/reference.fasta` is a samtools and bwa or bowtie2 indexed fasta file of your reference
+* `/path/to/annotations.gff` is a gff3 file of your amplicons/genes you want read counts for
+* `fastq_R1.fq.gz` and `fastq_R2.fq.gz` are paired-end reads in fastq format
 
 There's a lot more to the script, but those are the basics. See help file for more details.
 
@@ -102,43 +105,45 @@ optional arguments:
                         Number of processors to use (default: 1)
 ```
 
-## More details on parameters
+More details on parameters
+--------------------------
+
 ### Input/output
-- `-c COUNTS, --counts COUNTS`
+* `-c COUNTS, --counts COUNTS`
   - This is your output file where you want read counts per amplicon per sample to go to.
-- `-r REF, --ref REF`
+* `-r REF, --ref REF`
   - This is a samtools faidx and bwa and/or bowtie2 indexed (depending on which aligner you used) reference genome.
   - The default is reference.fasta, the Plasmodium falciparum 3D7 genome.
-- `-a ANNOT, --annot ANNOT`
+* `-a ANNOT, --annot ANNOT`
   - This is the annotation file with your amplicons or genes. Needs to be gff3 format!
   - The default is amplicons.gff, the Neafsey lab's own Pfal amplicon panel.
 
 ### QC parameters
-- `--2color`
+* `--2color`
   - This runs Trim-Galore in 2-color mode, useful for iSeq or NovaSeq 2-color chemistry data. (default: disabled)
-- `-l MIN_LENGTH, --min_length MIN_LENGTH`
+* `-l MIN_LENGTH, --min_length MIN_LENGTH`
   - This specifies the minimum read length to retain after trimming with Trim-Galore. (default 70 bp)
-- `-q MIN_BQ, --min_bq MIN_BQ`
+* `-q MIN_BQ, --min_bq MIN_BQ`
   - This specifies the minimum base quality to retain during trimming. (default: Q20)
-- `-N MAX_N, --max_N MAX_N`
+* `-N MAX_N, --max_N MAX_N`
   - This specifies the number of "N" bases allowed in a given read during trimming. (default: 1)
 
 ### Alignment parameters
-- `-I MAX_INSERT_SIZE, --max_insert_size MAX_INSERT_SIZE`
+* `-I MAX_INSERT_SIZE, --max_insert_size MAX_INSERT_SIZE`
   - This specifies the expected maximum insert size of your library. Set this to a bit bigger than your largest amplicon. (default: 500 bp)
-- `-S SOFT_CLIP, --soft_clip SOFT_CLIP`
+* `-S SOFT_CLIP, --soft_clip SOFT_CLIP`
   - This specifies the amount of soft clipping allowed in alignment. Only applies when using BWA Mem. (default: 5 bp)
-- `--bowtie2`
+* `--bowtie2`
   - Run Bowtie2 global aligner instead of BWA Mem local aligner. No soft clipping is allowed. (default: disabled)
 
 ### Read count output filtering
-- `--min_amplicon_count MIN_AMPLICON_COUNT`
+* `--min_amplicon_count MIN_AMPLICON_COUNT`
   - Filter read count output to remove amplicons with fewer than this many reads across all samples (default: 0)
-- `--min_sample_count MIN_SAMPLE_COUNT`
+* `--min_sample_count MIN_SAMPLE_COUNT`
   - Filter samples with fewer than this many total counts across all amplicons (default: 0)
 
 ### Other
-- `--no_fastqc`
+* `--no_fastqc`
   - Don't run FastQC or MultiQC. Speeds up analysis if only interested in read counts. (default: disabled)
-- `-p PROCS, --procs PROCS`
+* `-p PROCS, --procs PROCS`
   - Enabled parallel processing of QC and alignment of samples. Specify the number of processors your system has. (default: 1)
