@@ -15,6 +15,7 @@ from multiprocessing import Pool
 from argparse import ArgumentParser
 
 def check_commands(no_fastqc=False, bowtie2=False):
+    print("INFO: Verifying all tools are installed. Please wait...")
     cmds = [["trim_galore", "--version"], ["samtools", "--version"], ["htseq-count", "--version"]]
     
     if not no_fastqc:
@@ -322,7 +323,10 @@ def main():
     samples, bad_demux = parse_fastq(args.fastq)
 
     for folder in ["qc", "alignments", "bad_qc", "bad_alignment", "good_bams", "logs", "fastqc_preqc", "fastqc_postqc", "fastqc_aligned"]:
-        shutil.rmtree(folder)
+        try:
+            shutil.rmtree(folder)
+        except FileNotFoundError:
+            pass
         os.mkdir(folder)
     
     print("QC-ing %d samples. Please wait..." % len(samples), file=sys.stderr)
