@@ -288,8 +288,8 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
 
     return good
 
-def _process_sample(arg):
-    return process_sample(*arg)
+def _process_sample(*args):
+    return process_sample(*args)
 
 def process_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_length=70, min_bq=20, max_N=1, max_insert_size=500, soft_clip=5, bowtie2=False, no_fastqc=False):
     """QC and align sample"""
@@ -404,8 +404,8 @@ def main():
     if args.procs > 1:
         print("INFO: Using %d processors" % args.procs, file=sys.stderr)
         with Pool(processes=args.procs) as pool:
-            pool_args = [[sample, samples[sample][0], samples[sample][1], args.ref, args.two_color, args.min_length, args.min_bq, args.max_N, args.max_insert_size, args.soft_clip, args.bowtie2, args.no_fastqc] for sample in samples]
-            result = pool.apply_async(_process_sample, pool_args)
+            pool_args = [(sample, samples[sample][0], samples[sample][1], args.ref, args.two_color, args.min_length, args.min_bq, args.max_N, args.max_insert_size, args.soft_clip, args.bowtie2, args.no_fastqc) for sample in samples]
+            result = pool.starmap_async(process_sample, pool_args)
             qc_results = result.get()
     else:
         qc_results = {sample: process_sample(sample, samples[sample][0], samples[sample][1], ref=args.ref, two_color=args.two_color, min_length=args.min_length, min_bq=args.min_bq, max_N=args.max_N, max_insert_size=args.max_insert_size, soft_clip=args.soft_clip, bowtie2=args.bowtie2, no_fastqc=args.no_fastqc) for sample in samples}
