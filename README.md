@@ -146,3 +146,7 @@ optional arguments:
   - Don't run FastQC or MultiQC. Speeds up analysis if only interested in read counts. (default: disabled)
 * `-p PROCS, --procs PROCS`
   - Enabled parallel processing of QC and alignment of samples. Specify the number of processors your system has. (default: 1)
+
+Citation
+--------
+Coming soon...
