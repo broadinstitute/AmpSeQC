@@ -150,8 +150,11 @@ def run_fastqc(read1, read2, out):
 def qc_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_length=70, min_bq=20, max_N=1, no_fastqc=False):
     """Run a sample through QC and alignment"""
 
-    if not no_fastqc and not run_fastqc(fwd, rvs, "fastqc_preqc"):
-        print("WARNING: Could not run FastQC on pre-QC data!", file=sys.stderr)
+
+    if not no_fastqc:
+        print("INFO: Running FastQC on pre-QC data for %s" % sample, file=sys.stderr)
+        if not run_fastqc(fwd, rvs, "fastqc_preqc"):
+            print("WARNING: Could not run FastQC on pre-QC data!", file=sys.stderr)
 
     if two_color:
         cmd = "trim_galore --paired --length %d --2colour %d --max_n %d --dont_gzip -o qc %s %s" % (min_length, min_bq, max_N, fwd, rvs)
@@ -181,6 +184,7 @@ def qc_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_leng
         n_2 = _fastq_reads(read2)
         if n_1 and n_1 == n_2:
             print("INFO: QC complete for %s" % sample, file=sys.stderr)
+            print("INFO: Running FastQC on post-QC data for %s" % sample, file=sys.stderr)
             if not no_fastqc and not run_fastqc(read1, read2, "fastqc_postqc"):
                 print("WARNING: Could not run FastQC on post-QC data!", file=sys.stderr)
             return True
@@ -200,8 +204,8 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
         pass #NYI
     else:
         subprocess.run("bwa mem -I '200,100,%d,50' %s %s %s > alignments/%s.sam" % (max_insert_size, ref, read1, read2, sample), shell=True, check=True, stderr=w)
-        if os.path.isfile("alignments/%s.sam"):
-            output = subprocess.run(shlex.split("samtools flagstat alignments/%s.sam | head -n 1 | awk '{ print $1 }'" % sample), check=True, stdout=subprocess.PIPE, stderr=w)
+        if os.path.isfile("alignments/%s.sam" % sample):
+            output = subprocess.run("samtools flagstat alignments/%s.sam | head -n 1 | awk '{ print $1 }'" % sample, check=True, stdout=subprocess.PIPE, stderr=w)
             if int(output.stdout) > 0:
                 subprocess.run("samclip --ref {ref} --max {soft_clip} alignments/{sample}.sam \
                     | samtools fixmate - - | samtools view -bf 3 | samtools sort -T alignments/{sample} > alignments/{sample}.proper_pairs.bam && \
