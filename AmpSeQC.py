@@ -157,9 +157,9 @@ def qc_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_leng
             print("WARNING: Could not run FastQC on pre-QC data!", file=sys.stderr)
 
     if two_color:
-        cmd = "trim_galore --paired --length %d --2colour %d --max_n %d --dont_gzip -o qc %s %s" % (min_length, min_bq, max_N, fwd, rvs)
+        cmd = f"trim_galore --paired --length {min_length} --2colour {min_bq} --max_n {max_N} --dont_gzip -o qc {fwd} {rvs}"
     else:
-        cmd = "trim_galore --paired --length %d -q %d --max_n %d --dont_gzip -o qc %s %s" % (min_length, min_bq, max_N, fwd, rvs)
+        cmd = f"trim_galore --paired --length {min_length} -q {min_bq} --max_n {max_N} --dont_gzip -o qc {fwd} {rvs}"
     
     with open("logs/%s.trim_galore.log" % sample, "w") as w:
         output = subprocess.run(shlex.split(cmd), check=True, stdout=w, stderr=w)
@@ -197,33 +197,33 @@ def qc_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_leng
     
 
 def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5, bowtie2=False, no_fastqc=False):
-    read1 = "qc/%s_R1.fastq.gz" % sample
-    read2 = "qc/%s_R2.fastq.gz" % sample
+    read1 = f"qc/{sample}_R1.fastq.gz"
+    read2 = f"qc/{sample}_R2.fastq.gz"
 
-    w = open("logs/%s.alignment.log" % sample, "w")
+    w = open(f"logs/{sample}.alignment.log", "w")
     if bowtie2:
-        pass #NYI
+        subprocess.run(f"bowtie2 -X {max_insert_size} --very-sensitive -x {ref} -1 {read1} -2 {read2} | samtools sort -T alignments/{sample} > alignments/{sample}.bam && samtools index alignments/{sample}.bam", shell=True, check=True, stderr=w)
     else:
-        subprocess.run("bwa mem -I '200,100,%d,50' %s %s %s > alignments/%s.sam" % (max_insert_size, ref, read1, read2, sample), shell=True, check=True, stderr=w)
-        if os.path.isfile("alignments/%s.sam" % sample):
+        subprocess.run(f"bwa mem -I '200,100,{max_insert_size},50' {ref} {read1} {read2} > alignments/{sample}.sam", shell=True, check=True, stderr=w)
+        if os.path.isfile(f"alignments/{sample}.sam"):
             output = subprocess.run("samtools flagstat alignments/%s.sam | head -n 1 | awk '{ print $1 }'" % sample, shell=True, check=True, stdout=subprocess.PIPE, stderr=w, text=True)
             if int(output.stdout.strip()) > 0:
-                subprocess.run("samclip --ref {ref} --max {soft_clip} alignments/{sample}.sam \
+                subprocess.run(f"samclip --ref {ref} --max {soft_clip} alignments/{sample}.sam \
                     | samtools fixmate - - | samtools view -bf 3 | samtools sort -T alignments/{sample} > alignments/{sample}.proper_pairs.bam && \
-                        samtools index alignments/{sample}.proper_pairs.bam && samtools sort -T alignments/{sample} alignments/{sample}.sam > alignments/{sample}.bam".format(ref=ref, soft_clip=soft_clip, sample=sample), check=True, shell=True, stderr=w)
-                os.remove("alignments/%s.sam" % sample)
-                if os.path.isfile("alignments/%s.proper_pairs.bam" % sample):
+                        samtools index alignments/{sample}.proper_pairs.bam && samtools sort -T alignments/{sample} alignments/{sample}.sam > alignments/{sample}.bam", check=True, shell=True, stderr=w)
+                os.remove(f"alignments/{sample}.sam")
+                if os.path.isfile(f"alignments/{sample}.proper_pairs.bam"):
                     output = subprocess.run("samtools flagstat alignments/%s.proper_pairs.bam | head -n 1 | awk '{ print $1 }'" % sample, shell=True, check=True, stdout=subprocess.PIPE, stderr=w, text=True)
                     if int(output.stdout.strip()) > 0:
                         print("INFO: Alignment of %s finished with %d paired reads." % (sample, int(output.stdout.strip())/2), file=sys.stderr)
                     else:
-                        print("WARNING: Alignment of %s finished without any good aligned reads." % sample, file=sys.stderr)
+                        print(f"WARNING: Alignment of {sample} finished without any good aligned reads.", file=sys.stderr)
                 else:
-                    print("ERROR: Did not generate good alignment for %s" % sample, file=sys.stderr)
+                    print(f"ERROR: Did not generate good alignment for {sample}", file=sys.stderr)
             else:
-                print("ERROR: Alignment has zero reads for %s!" % sample, file=sys.stderr)
+                print(f"ERROR: Alignment has zero reads for {sample}!", file=sys.stderr)
         else:
-            print("ERROR: No alignment file for %s!" % sample, file=sys.stderr)
+            print(f"ERROR: No alignment file for {sample}!", file=sys.stderr)
             return False
     w.close()
     if not no_fastqc:
