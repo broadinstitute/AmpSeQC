@@ -50,8 +50,9 @@ from argparse import ArgumentParser
 DEFAULT_REF = "reference.fasta"
 DEFAULT_ANNOT = "amplicons.gff"
 
+
 def check_commands(no_fastqc=False, bowtie2=False):
-    print("INFO: Verifying all tools are installed. Please wait...")
+    print("INFO: Verifying all tools are installed. Please wait...", file=sys.stderr)
     cmds = [["trim_galore", "--version"], ["samtools", "--version"], ["htseq-count", "--version"]]
     
     if not no_fastqc:
@@ -73,7 +74,7 @@ def check_commands(no_fastqc=False, bowtie2=False):
             raise SystemExit
         except FileNotFoundError:
             missing = True
-            print("ERROR: Cannot find %s. Check if program is installed and try again." % cmd)
+            print("ERROR: Cannot find %s. Check if program is installed and try again." % cmd, file=sys.stderr)
     
     if missing:
         sys.exit(1)
@@ -86,6 +87,7 @@ def _fastq_reads(file):
         output = subprocess.run(f"wc -l {file}", text=True, shell=True, check=True, capture_output=True)
     
     return int(output.stdout.strip()) / 4
+
 
 def parse_fastq(files):
     """Parse fastq files to ensure everything is hunky dorey"""
@@ -182,7 +184,6 @@ def run_fastqc(read1, read2, out):
 def qc_sample(sample, fwd, rvs, ref=DEFAULT_REF, two_color=False, min_length=70, min_bq=20, max_N=1, no_fastqc=False):
     """Run a sample through QC and alignment"""
 
-
     if not no_fastqc:
         print("INFO: Running FastQC on pre-QC data for %s" % sample, file=sys.stderr)
         if not run_fastqc(fwd, rvs, "fastqc_preqc"):
@@ -196,7 +197,7 @@ def qc_sample(sample, fwd, rvs, ref=DEFAULT_REF, two_color=False, min_length=70,
     with open("logs/%s.trim_galore.log" % sample, "w") as w:
         output = subprocess.run(shlex.split(cmd), check=True, stdout=w, stderr=w)
         if output.returncode:
-            print("ERROR: Trim-Galore failed on %s" % sample)
+            print("ERROR: Trim-Galore failed on %s" % sample, file=sys.stderr)
             return
 
     read1 = "qc/%s_R1.fastq.gz" % sample
@@ -224,8 +225,6 @@ def qc_sample(sample, fwd, rvs, ref=DEFAULT_REF, two_color=False, min_length=70,
     
     print("WARNING: QC of %s failed" % sample, file=sys.stderr)
     return False
-
-
     
 
 def align_sample(sample, ref=DEFAULT_REF, max_insert_size=500, soft_clip=5, bowtie2=False, no_fastqc=False):
@@ -290,6 +289,7 @@ def align_sample(sample, ref=DEFAULT_REF, max_insert_size=500, soft_clip=5, bowt
     
 
     return good
+
 
 def process_sample(sample, fwd, rvs, ref=DEFAULT_REF, two_color=False, min_length=70, min_bq=20, max_N=1, max_insert_size=500, soft_clip=5, bowtie2=False, no_fastqc=False):
     """QC and align sample"""
@@ -391,7 +391,7 @@ def main():
 
     check_commands(no_fastqc=args.no_fastqc, bowtie2=args.bowtie2)
 
-    print("INFO: Parsing fastq files. Please wait...")
+    print("INFO: Parsing fastq files. Please wait...", file=sys.stderr)
     samples, bad_demux = parse_fastq(args.fastq)
 
     for folder in ["qc", "alignments", "logs", "fastqc_preqc", "fastqc_postqc", "fastqc_aligned"]:
