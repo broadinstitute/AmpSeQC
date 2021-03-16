@@ -114,10 +114,10 @@ optional arguments:
   - This is your output file where you want read counts per amplicon per sample to go to.
 * `-r REF, --ref REF`
   - This is a samtools faidx and bwa and/or bowtie2 indexed (depending on which aligner you used) reference genome.
-  - The default is reference.fasta, the Plasmodium falciparum 3D7 genome.
+  - The default is reference.fasta, the _Plasmodium falciparum_ 3D7 genome.
 * `-a ANNOT, --annot ANNOT`
   - This is the annotation file with your amplicons or genes. Needs to be gff3 format!
-  - The default is amplicons.gff, the Neafsey lab's own Pfal amplicon panel.
+  - The default is amplicons.gff, the Neafsey lab's own _Plasmodium_ amplicon panel.
 
 ### QC parameters
 * `--2color`
