@@ -64,7 +64,9 @@ You can run the script like so.
 where
 * `output_read_counts.tsv` is the file you want your read counts to go to
 * `/path/to/reference.fasta` is a samtools and bwa or bowtie2 indexed fasta file of your reference
+  - default is reference.fasta in script directory
 * `/path/to/annotations.gff` is a gff3 file of your amplicons/genes you want read counts for
+  - default is amplicons.gff in script directory
 * `fastq_R1.fq.gz` and `fastq_R2.fq.gz` are paired-end reads in fastq format (you can list as many pairs of files as you want)
 
 There's a lot more to the script, but those are the basics. See help file for more details.
@@ -77,7 +79,7 @@ usage: AmpSeQC.py [options] -c [read_counts] -r [ref.fasta] -a [annot.gff] fastq
 Amplicon sequencing quality control pipeline
 
 positional arguments:
-  fastq                 Fastq file(s) to analyze (expects paired-end reads in separate files)
+  fastq                 Paired-end fastq files (can be gzipped). Expects pairs to be in separate files.
 
 optional arguments:
   -h, --help            show this help message and exit
