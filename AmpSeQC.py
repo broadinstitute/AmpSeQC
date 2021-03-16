@@ -84,7 +84,7 @@ def _fastq_reads(file):
     if file[-9:] == ".fastq.gz" or file[-6:] == ".fq.gz":
         output = subprocess.run(f"zcat {file} | wc -l", text=True, shell=True, check=True, capture_output=True)
     else:
-        output = subprocess.run(f"wc -l {file}", text=True, shell=True, check=True, capture_output=True)
+        output = subprocess.run(f"cat {file} | wc -l", text=True, shell=True, check=True, capture_output=True)
     
     return int(output.stdout.strip()) / 4
 
