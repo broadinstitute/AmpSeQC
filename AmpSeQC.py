@@ -47,6 +47,9 @@ from multiprocessing import Pool
 
 from argparse import ArgumentParser
 
+DEFAULT_REF = "reference.fasta"
+DEFAULT_ANNOT = "amplicons.gff"
+
 def check_commands(no_fastqc=False, bowtie2=False):
     print("INFO: Verifying all tools are installed. Please wait...")
     cmds = [["trim_galore", "--version"], ["samtools", "--version"], ["htseq-count", "--version"]]
@@ -176,7 +179,7 @@ def run_fastqc(read1, read2, out):
     return True
 
 
-def qc_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_length=70, min_bq=20, max_N=1, no_fastqc=False):
+def qc_sample(sample, fwd, rvs, ref=DEFAULT_REF, two_color=False, min_length=70, min_bq=20, max_N=1, no_fastqc=False):
     """Run a sample through QC and alignment"""
 
 
@@ -225,7 +228,7 @@ def qc_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_leng
 
     
 
-def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5, bowtie2=False, no_fastqc=False):
+def align_sample(sample, ref=DEFAULT_REF, max_insert_size=500, soft_clip=5, bowtie2=False, no_fastqc=False):
     read1 = f"qc/{sample}_R1.fastq.gz"
     read2 = f"qc/{sample}_R2.fastq.gz"
 
@@ -276,7 +279,7 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
     w.close()
     if good and not no_fastqc:
         try:
-            subprocess.run(shlex.split("fastqc -o fastqc_aligned --noextract -f bam alignments/%s.proper_pairs.bam" % sample), check=True)
+            subprocess.run(shlex.split("fastqc -o fastqc_aligned --noextract -f bam alignments/%s.proper_pairs.bam" % sample), check=True, capture_output=True)
         except KeyboardInterrupt:
             raise KeyboardInterrupt
         except SystemExit:
@@ -288,7 +291,7 @@ def align_sample(sample, ref="reference.fasta", max_insert_size=500, soft_clip=5
 
     return good
 
-def process_sample(sample, fwd, rvs, ref="reference.fasta", two_color=False, min_length=70, min_bq=20, max_N=1, max_insert_size=500, soft_clip=5, bowtie2=False, no_fastqc=False):
+def process_sample(sample, fwd, rvs, ref=DEFAULT_REF, two_color=False, min_length=70, min_bq=20, max_N=1, max_insert_size=500, soft_clip=5, bowtie2=False, no_fastqc=False):
     """QC and align sample"""
     if not qc_sample(sample, fwd, rvs, ref=ref, two_color=two_color, min_length=min_length, min_bq=min_bq, max_N=max_N, no_fastqc=no_fastqc):
         return (sample, "bad_qc")
@@ -352,11 +355,15 @@ def run_multiqc():
     
 
 def main():
+    global DEFAULT_REF
+    global DEFAULT_ANNOT
+    DEFAULT_REF = os.path.realpath(os.path.join(os.path.dirname(__file__), DEFAULT_REF))
+    DEFAULT_ANNOT = os.path.realpath(os.path.join(os.path.dirname(__file__), DEFAULT_ANNOT))
     parser = ArgumentParser(description="Amplicon sequencing quality control pipeline", usage="%(prog)s [options] -c [read_counts] -r [ref.fasta] -a [annot.gff] fastq [fastq ...]")
     parser.add_argument("fastq", nargs="+", help="Fastq file(s) to analyze (expects paired-end reads as two separate files)")
     parser.add_argument("-c", "--counts", default="read_counts.tsv", help="Read count tsv file (default: read_counts.tsv)")
-    parser.add_argument("-r", "--ref", default="reference.fasta", help="Indexed reference fasta file to align to (default: reference.fasta)")
-    parser.add_argument("-a", "--annot", default="amplicons.gff", help="Amplicon/gene gff3 file to generate read counts of (default: amplicons.gff)")
+    parser.add_argument("-r", "--ref", default=DEFAULT_REF, help="Indexed reference fasta file to align to (default: %s)" % DEFAULT_REF)
+    parser.add_argument("-a", "--annot", default=DEFAULT_ANNOT, help="Amplicon/gene gff3 file to generate read counts of (default: %s)" % DEFAULT_ANNOT)
     parser.add_argument("--2color", dest="two_color", action="store_true", default=False, help="Run with 2 color chemistry (e.g. iSeq) QC parameters (default: False")
     parser.add_argument("-l", "--min_length", type=int, default=70, help="Minimum read length (in bp) to retain after trimming (default: 70)")
     parser.add_argument("-q", "--min_bq", type=int, default=20, help="Minimum base quality (PHRED score) to retain after trimming (default: 20)")
