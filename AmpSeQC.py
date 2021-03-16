@@ -346,7 +346,7 @@ def run_multiqc():
     
     for cmd in cmds:
         try:
-            subprocess.run(shlex.split(cmd), check=True)
+            subprocess.run(shlex.split(cmd), check=True, capture_output=True)
         except KeyboardInterrupt:
             raise KeyboardInterrupt
         except SystemExit:
