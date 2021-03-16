@@ -69,7 +69,7 @@ def check_commands(no_fastqc=False, bowtie2=False):
             subprocess.run(cmd, capture_output=True)
             print("INFO: %s OK!" % cmd[0], file=sys.stderr)
         except KeyboardInterrupt:
-            sys.exit(1)
+            raise KeyboardInterrupt
         except SystemExit:
             raise SystemExit
         except FileNotFoundError:
@@ -208,6 +208,10 @@ def qc_sample(sample, fwd, rvs, ref=DEFAULT_REF, two_color=False, min_length=70,
         subprocess.run("gzip -c qc/%s*_R1_*.fq > %s" % (sample, read1), shell=True, check=True)
         subprocess.run("gzip -c qc/%s*_R2_*.fq > %s" % (sample, read2), shell=True, check=True)
         subprocess.run("rm -f qc/%s*.fq" % (sample), shell=True, check=True)
+    except KeyboardInterrupt:
+        raise KeyboardInterrupt
+    except SystemExit:
+        raise SystemExit
     except:
         print("ERROR: Failed to process QC-ed files for %s" % sample, file=sys.stderr)
         return
@@ -344,9 +348,9 @@ def run_multiqc():
         try:
             subprocess.run(shlex.split(cmd), check=True)
         except KeyboardInterrupt:
-            break
+            raise KeyboardInterrupt
         except SystemExit:
-            break
+            raise SystemExit
         except Exception as e:
             print("WARNING: Exception occurred running MultiQC...\n%s" % e, file=sys.stderr)
             break
@@ -399,6 +403,10 @@ def main():
             continue
         try:
             shutil.rmtree(folder)
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt
+        except SystemExit:
+            raise SystemExit
         except FileNotFoundError:
             pass
         os.mkdir(folder)
@@ -480,7 +488,7 @@ INFO: Bad alignment (no properly aligned reads): %d""" % (len(good_alignment), l
 
     print("INFO: Running MultiQC. Please wait...", file=sys.stderr)
     if not args.no_fastqc and not run_multiqc():
-        print("ERROR: Error running MultiQC, exiting...", file=sys.stderr)
+        print("ERROR: Error running MultiQC!", file=sys.stderr)
         sys.exit(1)
     
     print("INFO: All steps completed successfully. Goodbye!", file=sys.stderr)
