@@ -2,7 +2,7 @@ AmpSeQC: Amplicon Sequencing Quality Control
 ============================================
 
 A general multiplexed amplicon sequencing and quality control pipeline specifically built
-for *Plasmodium falciparum* data
+for _Plasmodium falciparum_ data
 
 **Input**: paired-end fastq files, reference genome, gff3 annotaiton file of amplicon panel or genes
 
