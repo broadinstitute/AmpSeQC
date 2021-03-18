@@ -165,11 +165,16 @@ def parse_fastq(files):
     return samples, bad_demux
 
 
-def run_fastqc(read1, read2, out):
+def run_fastqc(read1, read2, out, sample=None):
     """Run FastQC on a set of paired reads"""
-    cmd = "fastqc -o %s --noextract -f fastq %s %s" % (out, read1, read2)
+    cmd = f"fastqc -o {out} --noextract -f fastq {read1} {read2}"
     try:
-        subprocess.run(shlex.split(cmd), check=True, capture_output=True)
+        if sample:
+            name = sample
+        else:
+            name = read1
+        with open(f"logs/fastqc.{out}.{name}.log", "w") as w:
+            subprocess.run(shlex.split(cmd), check=True, capture_output=True, stdout=w, stderr=w)
     except KeyboardInterrupt:
         raise KeyboardInterrupt
     except SystemExit:
@@ -186,7 +191,7 @@ def qc_sample(sample, fwd, rvs, ref=DEFAULT_REF, two_color=False, min_length=70,
 
     if not no_fastqc:
         print("INFO: Running FastQC on pre-QC data for %s" % sample, file=sys.stderr)
-        if not run_fastqc(fwd, rvs, "fastqc_preqc"):
+        if not run_fastqc(fwd, rvs, "fastqc_preqc", sample=sample):
             print("WARNING: Could not run FastQC on pre-QC data!", file=sys.stderr)
 
     if two_color:
@@ -223,7 +228,7 @@ def qc_sample(sample, fwd, rvs, ref=DEFAULT_REF, two_color=False, min_length=70,
             print("INFO: QC complete for %s" % sample, file=sys.stderr)
             if not no_fastqc:
                 print("INFO: Running FastQC on post-QC data for %s" % sample, file=sys.stderr)
-                if not run_fastqc(read1, read2, "fastqc_postqc"):
+                if not run_fastqc(read1, read2, "fastqc_postqc", sample=sample):
                     print("WARNING: Could not run FastQC on post-QC data!", file=sys.stderr)
             return True
     
