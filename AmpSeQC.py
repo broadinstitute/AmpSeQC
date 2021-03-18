@@ -115,25 +115,12 @@ def parse_fastq(files, procs=1):
     
     read1 = sorted(read1)
     read2 = sorted(read2)
+    pairs = []
 
-    bad_demux = []
-    samples = {}
     for i, file in enumerate(read1):
         paired = file.replace("_R1", "_R2")
         if paired == read2[i]:
-            n_1 = _fastq_reads(file)
-            n_2 = _fastq_reads(paired)
-            if n_1 != n_2:
-                print("ERROR: %s and %s do not have the same number of reads!" % (file, paired), file=sys.stderr)
-                sys.exit(1)
-            elif n_1 == 0:
-                bad_demux.append(file.split("_R1")[0])
-            else:
-                sample = os.path.basename(file).split("_R1")[0]
-                if sample in samples:
-                    print("ERROR: %s is not unique sample name!" % sample, file=sys.stderr)
-                    sys.exit(1)
-                samples[sample] = (file, read2[i])
+            pairs.append((os.path.basename(file).split("_R1")[0], file, paired))
             continue
         elif paired in read2:
             print("ERROR: Read1 and read2 files are out of order! Are there missing files?", file=sys.stderr)
@@ -141,19 +128,7 @@ def parse_fastq(files, procs=1):
         
         paired = file.replace(".1.fastq", ".2.fastq").replace(".1.fq", ".2.fq")
         if paired == read2[i]:
-            n_1 = _fastq_reads(file)
-            n_2 = _fastq_reads(paired)
-            if n_1 != n_2:
-                print("ERROR: %s and %s do not have the same number of reads!" % (file, paired), file=sys.stderr)
-                sys.exit(1)
-            elif n_1 == 0:
-                bad_demux.append(file.split(".1.fastq")[0].split(".1.fq")[0])
-            else:
-                sample = os.path.basename(file).split(".1.fastq")[0].split(".1.fq")[0]
-                if sample in samples:
-                    print("ERROR: %s is not unique sample name!" % sample, file=sys.stderr)
-                    sys.exit(1)
-                samples[sample] = (file, read2[i])
+            pairs.append((os.path.basename(file).split(".1.fastq")[0].split(".1.fq")[0], file, paired))
             continue
         elif paired in read2:
             print("ERROR: Read1 and read2 files are out of order! Are there missing files?", file=sys.stderr)
@@ -161,6 +136,38 @@ def parse_fastq(files, procs=1):
         
         print("ERROR: Cannot determined paired file for %s" % file, file=sys.stderr)
         sys.exit(1)
+
+    if procs > 1:
+        with Pool(processes=procs) as pool:
+            n1s = pool.map(_fastq_reads, read1)
+            n2s = pool.map(_fastq_reads, read2)
+    else:
+        n1s = list(map(_fastq_reads, read1))
+        n2s = list(map(_fastq_reads, read2))
+    
+    if not (n1s and n2s):
+        print("ERROR: Could not get read counts for fastq files!", file=sys.stderr)
+        sys.exit(1)
+    
+    bad_demux = []
+    samples = {}
+
+    for i, data in enumerate(pairs):
+        sample = data[0]
+        r1 = data[1]
+        r2 = data[2]
+        n1 = n1s[i]
+        n2 = n2s[i]
+        if n1 != n2:
+            print(f"ERROR: {r1} ({n1}) and {r2} ({n2}) do not have the same number of reads!", file=sys.stderr)
+            sys.exit(1)
+
+        if not n1:
+            bad_demux.append(sample)
+            print(f"WARNING: {sample} failed demux!")
+            continue
+
+        samples[sample] = (r1, r2)
     
     return samples, bad_demux
 
@@ -399,7 +406,7 @@ def main():
     check_commands(no_fastqc=args.no_fastqc, bowtie2=args.bowtie2)
 
     print("INFO: Parsing fastq files. Please wait...", file=sys.stderr)
-    samples, bad_demux = parse_fastq(args.fastq)
+    samples, bad_demux = parse_fastq(args.fastq, procs=args.procs)
 
     for folder in ["qc", "alignments", "logs", "fastqc_preqc", "fastqc_postqc", "fastqc_aligned"]:
         if args.no_fastqc and "fastqc" in folder:
