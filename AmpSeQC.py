@@ -89,7 +89,7 @@ def _fastq_reads(file):
     return int(output.stdout.strip()) / 4
 
 
-def parse_fastq(files):
+def parse_fastq(files, procs=1):
     """Parse fastq files to ensure everything is hunky dorey"""
     if len(files) % 2 != 0:
         print("ERROR: Not an even number of fastq files. Expects paired reads.", file=sys.stderr)
@@ -172,19 +172,16 @@ def run_fastqc(read1, read2, out, sample=None):
         if sample:
             name = sample
         else:
-            name = read1
-        with open(f"logs/fastqc.{out}.{name}.log", "w") as w:
-            subprocess.run(shlex.split(cmd), check=True, capture_output=True, stdout=w, stderr=w)
+            name = read1 + "_" + read2
+        with open(f"logs/{out}.{name}.log", "w") as w:
+            subprocess.run(shlex.split(cmd), check=True, stdout=w, stderr=w)
+        return True
     except KeyboardInterrupt:
         raise KeyboardInterrupt
     except SystemExit:
         raise SystemExit
     except Exception as e:
         print(e, file=sys.stderr)
-        return False
-    
-    return True
-
 
 def qc_sample(sample, fwd, rvs, ref=DEFAULT_REF, two_color=False, min_length=70, min_bq=20, max_N=1, no_fastqc=False):
     """Run a sample through QC and alignment"""
@@ -287,7 +284,8 @@ def align_sample(sample, ref=DEFAULT_REF, max_insert_size=500, soft_clip=5, bowt
     w.close()
     if good and not no_fastqc:
         try:
-            subprocess.run(shlex.split("fastqc -o fastqc_aligned --noextract -f bam alignments/%s.proper_pairs.bam" % sample), check=True, capture_output=True)
+            with open(f"logs/fastqc_aligned.{sample}.log", "w") as w:
+                subprocess.run(shlex.split(f"fastqc -o fastqc_aligned --noextract -f bam alignments/{sample}.proper_pairs.bam"), check=True, stdout=w, stderr=w)
         except KeyboardInterrupt:
             raise KeyboardInterrupt
         except SystemExit:
