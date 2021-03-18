@@ -164,9 +164,13 @@ def parse_fastq(files, procs=1):
 
         if not n1:
             bad_demux.append(sample)
-            print(f"WARNING: {sample} failed demux!")
+            print(f"WARNING: {sample} failed demux!", file=sys.stderr)
             continue
-
+        
+        if sample in samples:
+            print(f"ERROR: {sample} is not unique!", file=sys.stderr)
+            sys.exit(1)
+        
         samples[sample] = (r1, r2)
     
     return samples, bad_demux
