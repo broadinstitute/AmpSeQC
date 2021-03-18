@@ -180,7 +180,7 @@ def run_fastqc(read1, read2, out, sample=None):
             name = sample
         else:
             name = read1 + "_" + read2
-        with open(f"logs/{out}.{name}.log", "w") as w:
+        with open(f"logs/{name}.{out}.log", "w") as w:
             subprocess.run(shlex.split(cmd), check=True, stdout=w, stderr=w)
         return True
     except KeyboardInterrupt:
@@ -291,7 +291,7 @@ def align_sample(sample, ref=DEFAULT_REF, max_insert_size=500, soft_clip=5, bowt
     w.close()
     if good and not no_fastqc:
         try:
-            with open(f"logs/fastqc_aligned.{sample}.log", "w") as w:
+            with open(f"logs/{sample}.fastqc_aligned.log", "w") as w:
                 subprocess.run(shlex.split(f"fastqc -o fastqc_aligned --noextract -f bam alignments/{sample}.proper_pairs.bam"), check=True, stdout=w, stderr=w)
         except KeyboardInterrupt:
             raise KeyboardInterrupt
