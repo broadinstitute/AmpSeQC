@@ -63,8 +63,8 @@ def parse_asv_table(file, min_reads=50, min_samples=2, max_dist=30):
 def get_asv_seqs(file):
     return {seq.id: seq for seq in SeqIO.parse(file, "fasta")}
 
-
-def write_bins(asvs, bins, amplicons, outdir="ASVs"):
+# 
+def wrte_amplicon_fastas(asvs, bins, amplicons, outdir="ASVs"):
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
     
@@ -88,7 +88,7 @@ def run_muscle(bins, outdir="ASVs"):
         subprocess.run(["muscle", "-in", fasta, "-out", msa], capture_output=True)
 
 
-# get coords of amplicons (basically where there aren't gaps across all sequences)
+# get coords of amplicons (where there aren't gaps across all ASVs)
 def _find_asv_coords(alignment):
     gaps = {i:0 for i in range(alignment.get_alignment_length())}
     for seq in alignment[1:]:
@@ -100,8 +100,26 @@ def _find_asv_coords(alignment):
     return min(non_gaps), max(non_gaps)
 
 
+# get coords of homopolymer runs
+def _get_homopolymer_runs(alignment, min_length=5):
+    runs = set()
+    seq = alignment[0].seq
+    prev = ""
+    run = 0
+    for i in range(1, alignment.get_alignment_length()):
+        if prev == seq[i]:
+            run += 1
+        else:
+            if run >= min_length:
+                runs.update(list(range(i-run, i)))
+            run = 0
+        prev = seq[i]
+    
+    return runs
+
+
 # parse muscle alignment
-def parse_alignment(alignment):
+def parse_alignment(alignment, min_homopolymer_length=5):
     aln = AlignIO.read(alignment, "fasta")
     aln.sort(key = lambda record: (record.id[:5] != "PF3D7", record.id))
     anchor = aln[0]
@@ -109,17 +127,23 @@ def parse_alignment(alignment):
         print(f"ERROR: No anchor gene for {alignment}", file=sys.stderr)
 
     start, end = _find_asv_coords(aln)
+
+    homopolymer_runs = _get_homopolymer_runs(alignment, min_length=min_homopolymer_length)
+
     if len(aln[0].seq.lstrip("-")) != aln.get_alignment_length():
-        print(f"WARNING: {alignment} extends beyond 5' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
+        print(f"WARNING: {os.path.basename(alignment)} extends beyond 5' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
     elif len(aln[0].seq.rstrip("-")) != aln.get_alignment_length():
-        print(f"WARNING: {alignment} extends beyond 3' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
+        print(f"WARNING: {os.path.basename(alignment)} extends beyond 3' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
 
     asv_to_cigar = {}
     for seq in aln[1:]:
         pos = start + 1
         cigar = ""
         for i in range(start, end):
-            if seq[i] != anchor[i]:
+            if i in homopolymer_runs:
+                if i and i-1 not in homopolymer_runs and seq.id == aln[1].id:
+                    print(f"WARNING: Skipping homopolymer run (poly-{seq[i]}) beginning at position {pos} in {os.path.basename(alignment)}")
+            elif seq[i] != anchor[i]:
                 if anchor[i] == "-":
                     if i == start or anchor[i-1] != "-":
                         cigar += f"{pos}I="
@@ -194,7 +218,7 @@ outdir = args.alignments
 print(f"INFO: Writing amplicon fasta files to {outdir}")
 if not os.path.isdir(outdir):
     os.mkdir(outdir)
-write_bins(asvs, bins, amplicons, outdir=outdir)
+wrte_amplicon_fastas(asvs, bins, amplicons, outdir=outdir)
 
 print("INFO: Running MUSCLE aligner on amplicon fasta files. Please wait...", file=sys.stderr)
 run_muscle(bins, outdir=outdir)
