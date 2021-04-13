@@ -105,13 +105,19 @@ def _get_homopolymer_runs(seq, min_length=5):
     runs = set()
     prev = ""
     run = 0
+    start = None
     for i in range(1, len(seq)):
+        if seq[i] == "-":
+            continue
         if prev == seq[i]:
+            if not start:
+                start = i
             run += 1
         else:
             if run >= min_length:
-                runs.update(list(range(i-run, i)))
+                runs.update(list(range(start, i)))
             run = 0
+            start = None
         prev = seq[i]
     
     return runs
@@ -144,7 +150,7 @@ def parse_alignment(alignment, min_homopolymer_length=5):
                 if i and i-1 not in homopolymer_runs and seq.id == aln[1].id:
                     print(f"WARNING: Skipping homopolymer run (poly-{seq[i]}) beginning at position {pos} in {os.path.basename(alignment)}")
             elif seq[i] != anchor[i]:
-                if anchor[i] == "-":
+                if anchor[i] == "-": # TODO: Add nucleotide that is in 3d7 before gap
                     if i == start or anchor[i-1] != "-":
                         cigar += f"{pos}I="
                     cigar += seq[i]
@@ -189,10 +195,10 @@ parser.add_argument("-f", "--fasta", required=True, help="Fasta file of ASV sequ
 parser.add_argument("-t", "--table", required=True, help="ASV table from DADA2 pipeline")
 parser.add_argument("-a", "--alignments", required=True, help="Directory to store ASV alignment files")
 parser.add_argument("-o", "--out", required=True, help="Output file for ASV -> CIGAR string table")
-parser.add_argument("-p", "--polyN", type=int, default=5, help="Mask homopolymer runs length >= polyN (default: 5; disable = -1)")
-parser.add_argument("--min_reads", type=int, default=50, help="Minimum total reads to include ASV (default: 50)")
-parser.add_argument("--min_samples", type=int, default=2, help="Minimum samples to include ASV (default: 2)")
-parser.add_argument("--max_dist", type=int, default=30, help="Maximum edit distance to include ASV (default: 30)")
+parser.add_argument("-p", "--polyN", type=int, default=5, help="Mask homopolymer runs length >= polyN (default: 5; disabled < 2)")
+parser.add_argument("--min_reads", type=int, default=0, help="Minimum total reads to include ASV (default: 0)")
+parser.add_argument("--min_samples", type=int, default=0, help="Minimum samples to include ASV (default: 0)")
+parser.add_argument("--max_dist", type=int, default=0, help="Maximum edit distance to include ASV (default: 0)")
 parser.add_argument("--amp_db", default=AMPLICON_DATABASE, help=f"Amplicon sequence database (default: {AMPLICON_DATABASE})")
 parser.add_argument("--amp_to_gene", default=AMP_TO_GENE, help=f"Amplicon -> gene table (default: {AMP_TO_GENE})")
 args = parser.parse_args()
