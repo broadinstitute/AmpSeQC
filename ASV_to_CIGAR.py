@@ -149,7 +149,7 @@ def parse_alignment(alignment, min_homopolymer_length=5):
         for i in range(start, end):
             if min_homopolymer_length > 1 and i in homopolymer_runs:
                 if i and i-1 not in homopolymer_runs and seq.id == aln[1].id:
-                    print(f"INFO: Skipping homopolymer run (poly-{seq[i]}) beginning at position {pos} in {os.path.basename(alignment)}", file=sys.stderr)
+                    print(f"INFO: Skipping homopolymer run (poly-{anchor[i]}) beginning at position {pos} in {os.path.basename(alignment)}", file=sys.stderr)
             elif seq[i] != anchor[i]:
                 if anchor[i] == "-":
                     if i == start or anchor[i-1] != "-":
