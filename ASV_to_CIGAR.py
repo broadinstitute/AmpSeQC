@@ -106,12 +106,14 @@ def _get_homopolymer_runs(seq, min_length=5):
     prev = ""
     run = 0
     start = None
-    for i in range(1, len(seq)):
+    last_non_gap = None
+    for i in range(len(seq)):
         if seq[i] == "-":
             continue
+        last_non_gap = i
         if prev == seq[i]:
             if not start:
-                start = i
+                start = last_non_gap
             run += 1
         else:
             if run >= min_length:
@@ -148,7 +150,7 @@ def parse_alignment(alignment, min_homopolymer_length=5):
         for i in range(start, end):
             if min_homopolymer_length > 1 and i in homopolymer_runs:
                 if i and i-1 not in homopolymer_runs and seq.id == aln[1].id:
-                    print(f"INFO: Skipping homopolymer run (poly-{seq[i]}) beginning at position {pos} in {os.path.basename(alignment)}")
+                    print(f"INFO: Skipping homopolymer run (poly-{seq[i]}) beginning at position {pos} in {os.path.basename(alignment)}", file=sys.stderr)
             elif seq[i] != anchor[i]:
                 if anchor[i] == "-":
                     if i == start or anchor[i-1] != "-":
