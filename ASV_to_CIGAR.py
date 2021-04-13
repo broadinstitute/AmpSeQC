@@ -145,7 +145,7 @@ def parse_alignments(bins, outdir="ASVs"):
     for amplicon in bins:
         msa = os.path.join(outdir, f"{amplicon}.msa")
         if not os.path.isfile(msa):
-            print(f"Could not find {msa}", file=sys.stderr, file=sys.stderr)
+            print(f"Could not find {msa}", file=sys.stderr)
             continue
         cigars[amplicon] = parse_alignment(msa)
     
