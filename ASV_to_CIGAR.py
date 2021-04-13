@@ -128,7 +128,8 @@ def parse_alignment(alignment, min_homopolymer_length=5):
 
     start, end = _find_asv_coords(aln)
 
-    homopolymer_runs = _get_homopolymer_runs(aln, min_length=min_homopolymer_length)
+    if min_homopolymer_length > 1:
+        homopolymer_runs = _get_homopolymer_runs(aln, min_length=min_homopolymer_length)
 
     if len(aln[0].seq.lstrip("-")) != aln.get_alignment_length():
         print(f"WARNING: {os.path.basename(alignment)} extends beyond 5' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
@@ -140,7 +141,7 @@ def parse_alignment(alignment, min_homopolymer_length=5):
         pos = start + 1
         cigar = ""
         for i in range(start, end):
-            if i in homopolymer_runs:
+            if min_homopolymer_length > 1 and i in homopolymer_runs:
                 if i and i-1 not in homopolymer_runs and seq.id == aln[1].id:
                     print(f"WARNING: Skipping homopolymer run (poly-{seq[i]}) beginning at position {pos} in {os.path.basename(alignment)}")
             elif seq[i] != anchor[i]:
@@ -164,14 +165,14 @@ def parse_alignment(alignment, min_homopolymer_length=5):
 
 
 # get variants per amplicon per position
-def parse_alignments(bins, outdir="ASVs"):
+def parse_alignments(bins, min_homopolymer_length=5, outdir="ASVs"):
     cigars = {}
     for amplicon in bins:
         msa = os.path.join(outdir, f"{amplicon}.msa")
         if not os.path.isfile(msa):
             print(f"ERROR: Could not find {msa}", file=sys.stderr)
             continue
-        cigars[amplicon] = parse_alignment(msa)
+        cigars[amplicon] = parse_alignment(msa, min_homopolymer_length=min_homopolymer_length)
     
     return cigars
 
@@ -189,6 +190,7 @@ parser.add_argument("-f", "--fasta", required=True, help="Fasta file of ASV sequ
 parser.add_argument("-t", "--table", required=True, help="ASV table from DADA2 pipeline")
 parser.add_argument("-a", "--alignments", required=True, help="Directory to store ASV alignment files")
 parser.add_argument("-o", "--out", required=True, help="Output file for ASV -> CIGAR string table")
+parser.add_argument("-p", "--polyN", type=int, default=5, help="Mask homopolymer runs length >= polyN (default: 5; disable = -1)")
 parser.add_argument("--min_reads", type=int, default=50, help="Minimum total reads to include ASV (default: 50)")
 parser.add_argument("--min_samples", type=int, default=50, help="Minimum samples to include ASV (default: 2)")
 parser.add_argument("--max_dist", type=int, default=30, help="Maximum edit distance to include ASV (default: 30)")
@@ -224,7 +226,7 @@ print("INFO: Running MUSCLE aligner on amplicon fasta files. Please wait...", fi
 run_muscle(bins, outdir=outdir)
 
 print("INFO: Parsing alignments to CIGAR strings")
-cigars = parse_alignments(bins, outdir=outdir)
+cigars = parse_alignments(bins, min_homopolymer_length=args.polyN, outdir=outdir)
 if not cigars:
     print("ERROR: could not determine CIGAR strings", file=sys.stderr)
     sys.exit(1)
