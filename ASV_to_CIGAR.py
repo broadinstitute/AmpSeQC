@@ -70,7 +70,7 @@ def write_bins(asvs, bins, amplicons, outdir="ASVs"):
     
     for amplicon in bins:
         if amplicon not in amplicons:
-            print(f"WARNING: {amplicon} target not found in amplicon sequence database")
+            print(f"WARNING: {amplicon} target not found in amplicon sequence database", file=sys.stderr)
             continue
         with open(os.path.join(outdir, f"{amplicon}.fasta"), "w") as w:
             SeqIO.write(amplicons[amplicon], w, "fasta")
@@ -85,7 +85,7 @@ def run_muscle(bins, outdir="ASVs"):
             print(f"Could not find {fasta}", file=sys.stderr)
             continue
         msa = os.path.join(outdir, f"{amplicon}.msa")
-        subprocess.run(["muscle", "-in", fasta, "-out", msa])
+        subprocess.run(["muscle", "-in", fasta, "-out", msa], capture_output=True)
 
 
 # get coords of amplicons (basically where there aren't gaps across all sequences)
@@ -106,13 +106,13 @@ def parse_alignment(alignment):
     aln.sort(key = lambda record: (record.id[:5] != "PF3D7", record.id))
     anchor = aln[0]
     if anchor.id[:5] != "PF3D7":
-        print(f"ERROR: No anchor gene for {alignment}")
+        print(f"ERROR: No anchor gene for {alignment}", file=sys.stderr)
 
     start, end = _find_asv_coords(aln)
     if len(aln[0].seq.lstrip("-")) != aln.get_alignment_length():
-        print(f"WARNING: {aln[0].id} alignment extends beyond 5' end. ASVs may include non-genic sequence.")
+        print(f"WARNING: {alignment} extends beyond 5' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
     elif len(aln[0].seq.rstrip("-")) != aln.get_alignment_length():
-        print(f"WARNING: {aln[0].id} alignment extends beyond 3' end. ASVs may include non-genic sequence.")
+        print(f"WARNING: {alignment} extends beyond 3' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
 
     asv_to_cigar = {}
     for seq in aln[1:]:
@@ -145,7 +145,7 @@ def parse_alignments(bins, outdir="ASVs"):
     for amplicon in bins:
         msa = os.path.join(outdir, f"{amplicon}.msa")
         if not os.path.isfile(msa):
-            print(f"Could not find {msa}", file=sys.stderr)
+            print(f"Could not find {msa}", file=sys.stderr, file=sys.stderr)
             continue
         cigars[amplicon] = parse_alignment(msa)
     
@@ -174,17 +174,17 @@ args = parser.parse_args()
 
 amplicons = parse_amp_db(args.amp_db, args.amp_to_gene)
 if not amplicons:
-    print(f"ERROR: No amplicons in {args.amp_db}")
+    print(f"ERROR: No amplicons in {args.amp_db}", file=sys.stderr)
     sys.exit(1)
 
 asvs = get_asv_seqs(args.fasta)
 if not asvs:
-    print(f"ERROR: No ASV sequences in {args.fasta}")
+    print(f"ERROR: No ASV sequences in {args.fasta}", file=sys.stderr)
     sys.exit(1)
 
 bins = parse_asv_table(args.table, min_reads=args.min_reads, min_samples=args.min_samples, max_dist=args.max_dist)
 if not bins:
-    print(f"ERROR: No useable data in {args.table}")
+    print(f"ERROR: No useable data in {args.table}", file=sys.stderr)
     sys.exit(1)
 
 outdir = args.alignments
@@ -192,10 +192,11 @@ if not os.path.isdir(outdir):
     os.mkdir(outdir)
 
 write_bins(asvs, bins, amplicons, outdir=outdir)
+print("Running MUSCLE aligner. Please wait...", file=sys.stderr)
 run_muscle(bins, outdir=outdir)
 
 cigars = parse_alignments(bins, outdir=outdir)
 if not cigars:
-    print("ERROR: could not determine CIGAR strings")
+    print("ERROR: could not determine CIGAR strings", file=sys.stderr)
     sys.exit(1)
 write_cigar_strings(cigars, args.out)
