@@ -35,7 +35,7 @@ def parse_amp_db(fasta_file=AMPLICON_DATABASE, amp_to_gene_file=AMP_TO_GENE):
 
 
 # parse asv to amplicon table
-def parse_asv_table(file, min_reads=50, min_samples=2, max_dist=30):
+def parse_asv_table(file, min_reads=0, min_samples=0, max_dist=-1):
     bins = {}
     with open(file) as f:
         f.readline()
@@ -48,7 +48,7 @@ def parse_asv_table(file, min_reads=50, min_samples=2, max_dist=30):
             if nsamples < min_samples:
                 continue
             dist = min(int(line[5]), int(line[7]))
-            if dist > max_dist:
+            if max_dist >= 0 and dist > max_dist:
                 continue
             ASV = line[0]
             amplicon = line[4]
@@ -201,7 +201,7 @@ parser.add_argument("-o", "--out", required=True, help="Output file for ASV -> C
 parser.add_argument("-p", "--polyN", type=int, default=5, help="Mask homopolymer runs length >= polyN (default: 5; disabled < 2)")
 parser.add_argument("--min_reads", type=int, default=0, help="Minimum total reads to include ASV (default: 0)")
 parser.add_argument("--min_samples", type=int, default=0, help="Minimum samples to include ASV (default: 0)")
-parser.add_argument("--max_dist", type=int, default=0, help="Maximum edit distance to include ASV (default: 0)")
+parser.add_argument("--max_dist", type=int, default=-1, help="Maximum edit distance to include ASV (default: -1, disabled)")
 parser.add_argument("--amp_db", default=AMPLICON_DATABASE, help=f"Amplicon sequence database (default: {AMPLICON_DATABASE})")
 parser.add_argument("--amp_to_gene", default=AMP_TO_GENE, help=f"Amplicon -> gene table (default: {AMP_TO_GENE})")
 args = parser.parse_args()
