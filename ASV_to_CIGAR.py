@@ -191,7 +191,7 @@ parser.add_argument("-a", "--alignments", required=True, help="Directory to stor
 parser.add_argument("-o", "--out", required=True, help="Output file for ASV -> CIGAR string table")
 parser.add_argument("-p", "--polyN", type=int, default=5, help="Mask homopolymer runs length >= polyN (default: 5; disable = -1)")
 parser.add_argument("--min_reads", type=int, default=50, help="Minimum total reads to include ASV (default: 50)")
-parser.add_argument("--min_samples", type=int, default=50, help="Minimum samples to include ASV (default: 2)")
+parser.add_argument("--min_samples", type=int, default=2, help="Minimum samples to include ASV (default: 2)")
 parser.add_argument("--max_dist", type=int, default=30, help="Maximum edit distance to include ASV (default: 30)")
 parser.add_argument("--amp_db", default=AMPLICON_DATABASE, help=f"Amplicon sequence database (default: {AMPLICON_DATABASE})")
 parser.add_argument("--amp_to_gene", default=AMP_TO_GENE, help=f"Amplicon -> gene table (default: {AMP_TO_GENE})")
