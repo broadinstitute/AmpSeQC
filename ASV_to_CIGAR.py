@@ -109,6 +109,11 @@ def parse_alignment(alignment):
         print(f"ERROR: No anchor gene for {alignment}")
 
     start, end = _find_asv_coords(aln)
+    if len(aln[0].seq.lstrip("-")) != aln.get_alignment_length():
+        print(f"WARNING: {aln[0].id} alignment extends beyond 5' end. ASVs may include non-genic sequence.")
+    elif len(aln[0].seq.rstrip("-")) != aln.get_alignment_length():
+        print(f"WARNING: {aln[0].id} alignment extends beyond 3' end. ASVs may include non-genic sequence.")
+
     asv_to_cigar = {}
     for seq in aln[1:]:
         pos = start + 1
