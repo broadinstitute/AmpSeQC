@@ -63,7 +63,7 @@ def parse_asv_table(file, min_reads=50, min_samples=2, max_dist=30):
 def get_asv_seqs(file):
     return {seq.id: seq for seq in SeqIO.parse(file, "fasta")}
 
-# 
+# write amplicon fasta files
 def wrte_amplicon_fastas(asvs, bins, amplicons, outdir="ASVs"):
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
@@ -103,7 +103,7 @@ def _find_asv_coords(alignment):
 # get coords of homopolymer runs
 def _get_homopolymer_runs(alignment, min_length=5):
     runs = set()
-    seq = alignment[0].seq
+    seq = alignment[0]
     prev = ""
     run = 0
     for i in range(1, alignment.get_alignment_length()):
@@ -128,7 +128,7 @@ def parse_alignment(alignment, min_homopolymer_length=5):
 
     start, end = _find_asv_coords(aln)
 
-    homopolymer_runs = _get_homopolymer_runs(alignment, min_length=min_homopolymer_length)
+    homopolymer_runs = _get_homopolymer_runs(aln, min_length=min_homopolymer_length)
 
     if len(aln[0].seq.lstrip("-")) != aln.get_alignment_length():
         print(f"WARNING: {os.path.basename(alignment)} extends beyond 5' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
