@@ -148,11 +148,13 @@ def parse_alignment(alignment, min_homopolymer_length=5):
         for i in range(start, end):
             if min_homopolymer_length > 1 and i in homopolymer_runs:
                 if i and i-1 not in homopolymer_runs and seq.id == aln[1].id:
-                    print(f"WARNING: Skipping homopolymer run (poly-{seq[i]}) beginning at position {pos} in {os.path.basename(alignment)}")
+                    print(f"INFO: Skipping homopolymer run (poly-{seq[i]}) beginning at position {pos} in {os.path.basename(alignment)}")
             elif seq[i] != anchor[i]:
-                if anchor[i] == "-": # TODO: Add nucleotide that is in 3d7 before gap
+                if anchor[i] == "-":
                     if i == start or anchor[i-1] != "-":
                         cigar += f"{pos}I="
+                        if i:
+                            cigar += anchor[i-1]
                     cigar += seq[i]
                     continue
                 elif seq[i] == "-":
