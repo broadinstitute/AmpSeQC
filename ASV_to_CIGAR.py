@@ -82,7 +82,7 @@ def run_muscle(bins, outdir="ASVs"):
     for amplicon in bins:
         fasta = os.path.join(outdir, f"{amplicon}.fasta")
         if not os.path.isfile(fasta):
-            print(f"Could not find {fasta}", file=sys.stderr)
+            print(f"ERROR: Could not find {fasta}", file=sys.stderr)
             continue
         msa = os.path.join(outdir, f"{amplicon}.msa")
         subprocess.run(["muscle", "-in", fasta, "-out", msa], capture_output=True)
@@ -145,7 +145,7 @@ def parse_alignments(bins, outdir="ASVs"):
     for amplicon in bins:
         msa = os.path.join(outdir, f"{amplicon}.msa")
         if not os.path.isfile(msa):
-            print(f"Could not find {msa}", file=sys.stderr)
+            print(f"ERROR: Could not find {msa}", file=sys.stderr)
             continue
         cigars[amplicon] = parse_alignment(msa)
     
@@ -172,31 +172,38 @@ parser.add_argument("--amp_db", default=AMPLICON_DATABASE, help=f"Amplicon seque
 parser.add_argument("--amp_to_gene", default=AMP_TO_GENE, help=f"Amplicon -> gene table (default: {AMP_TO_GENE})")
 args = parser.parse_args()
 
+print(f"INFO: Loading {args.amp_db} and {args.amp_to_gene}")
 amplicons = parse_amp_db(args.amp_db, args.amp_to_gene)
 if not amplicons:
     print(f"ERROR: No amplicons in {args.amp_db}", file=sys.stderr)
     sys.exit(1)
 
+print(f"INFO: Loading {args.fasta}")
 asvs = get_asv_seqs(args.fasta)
 if not asvs:
     print(f"ERROR: No ASV sequences in {args.fasta}", file=sys.stderr)
     sys.exit(1)
 
+print(f"INFO: Parsing {args.table} with total reads >= {args.min_reads}, samples >= {args.min_samples}, dist <= {args.max_dist}")
 bins = parse_asv_table(args.table, min_reads=args.min_reads, min_samples=args.min_samples, max_dist=args.max_dist)
 if not bins:
     print(f"ERROR: No useable data in {args.table}", file=sys.stderr)
     sys.exit(1)
 
 outdir = args.alignments
+print(f"INFO: Writing amplicon fasta files to {outdir}")
 if not os.path.isdir(outdir):
     os.mkdir(outdir)
-
 write_bins(asvs, bins, amplicons, outdir=outdir)
-print("Running MUSCLE aligner. Please wait...", file=sys.stderr)
+
+print("INFO: Running MUSCLE aligner on amplicon fasta files. Please wait...", file=sys.stderr)
 run_muscle(bins, outdir=outdir)
 
+print("INFO: Parsing alignments to CIGAR strings")
 cigars = parse_alignments(bins, outdir=outdir)
 if not cigars:
     print("ERROR: could not determine CIGAR strings", file=sys.stderr)
     sys.exit(1)
+
 write_cigar_strings(cigars, args.out)
+print(f"INFO: Wrote ASV->CIGAR to {args.out}")
