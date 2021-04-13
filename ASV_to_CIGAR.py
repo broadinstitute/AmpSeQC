@@ -3,7 +3,6 @@ import argparse
 import sys
 import os
 import subprocess
-import tempfile
 
 from Bio import SeqIO, AlignIO
 
@@ -110,8 +109,7 @@ def _get_homopolymer_runs(seq, min_length=5):
     for i in range(len(seq)):
         if seq[i] == "-":
             continue
-        last_non_gap = i
-        if prev == seq[i]:
+        if seq[i] == prev:
             if not start:
                 start = last_non_gap
             run += 1
@@ -121,6 +119,7 @@ def _get_homopolymer_runs(seq, min_length=5):
             run = 0
             start = None
         prev = seq[i]
+        last_non_gap = i
     
     return runs
 
