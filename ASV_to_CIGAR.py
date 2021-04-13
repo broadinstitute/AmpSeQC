@@ -156,7 +156,7 @@ def write_cigar_strings(cigars, out="CIGARs.tsv"):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-f" "--fasta", required=True, help="Fasta file of ASV sequences from DADA2 pipeline")
+parser.add_argument("-f", "--fasta", required=True, help="Fasta file of ASV sequences from DADA2 pipeline")
 parser.add_argument("-t", "--table", required=True, help="ASV table from DADA2 pipeline")
 parser.add_argument("-a", "--alignments", required=True, help="Directory to store ASV alignment files")
 parser.add_argument("-o", "--out", required=True, help="Output file for ASV -> CIGAR string table")
