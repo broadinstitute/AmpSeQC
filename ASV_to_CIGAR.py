@@ -147,7 +147,9 @@ def parse_alignment(alignment, min_homopolymer_length=5):
         pos = start + 1
         cigar = ""
         for i in range(start, end):
-            if min_homopolymer_length > 1 and i in homopolymer_runs:
+            if aln[0][i] in ['a', 'c', 'g', 't']:
+                pass # dustmasker
+            elif min_homopolymer_length > 1 and i in homopolymer_runs:
                 if i and i-1 not in homopolymer_runs and seq.id == aln[1].id:
                     print(f"INFO: Skipping homopolymer run (poly-{anchor[i]}) beginning at position {pos} in {os.path.basename(alignment)}", file=sys.stderr)
             elif seq[i] != anchor[i]:
