@@ -11,6 +11,8 @@ AMPLICON_DATABASE="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicon_genes
 AMPLICON_MASK_INFO="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicon_genes.mask"
 AMP_TO_GENE="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicon_to_gene_id.txt"
 
+verbose = False
+
 # parse amplicon name to gene id
 def parse_amp_to_gene(file=AMP_TO_GENE):
     gene2amp = {}
@@ -156,10 +158,11 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5):
     if min_homopolymer_length > 1:
         homopolymer_runs = _get_homopolymer_runs(aln[0], min_length=min_homopolymer_length)
 
-    if len(aln[0].seq.lstrip("-")) != aln.get_alignment_length():
-        print(f"WARNING: {os.path.basename(alignment)} extends beyond 5' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
-    elif len(aln[0].seq.rstrip("-")) != aln.get_alignment_length():
-        print(f"WARNING: {os.path.basename(alignment)} extends beyond 3' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
+    if verbose:
+        if len(aln[0].seq.lstrip("-")) != aln.get_alignment_length():
+            print(f"WARNING: {os.path.basename(alignment)} extends beyond 5' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
+        elif len(aln[0].seq.rstrip("-")) != aln.get_alignment_length():
+            print(f"WARNING: {os.path.basename(alignment)} extends beyond 3' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
 
     gene = aln[0].id.split(":")[0]
     masked = mask.get(gene, None)
@@ -173,7 +176,8 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5):
                 pass # masked position in gene. mask info is 0-based :(
             elif min_homopolymer_length > 1 and i in homopolymer_runs:
                 if i and i-1 not in homopolymer_runs and seq.id == aln[1].id:
-                    print(f"INFO: Skipping homopolymer run (poly-{anchor[i]}) beginning at position {pos} in {os.path.basename(alignment)}", file=sys.stderr)
+                    if verbose:
+                        print(f"INFO: Skipping homopolymer run (poly-{anchor[i]}) beginning at position {pos} in {os.path.basename(alignment)}", file=sys.stderr)
             elif seq[i] != anchor[i]:
                 if anchor[i] == "-":
                     if i == start or anchor[i-1] != "-":
@@ -229,9 +233,13 @@ parser.add_argument("--max_dist", type=int, default=-1, help="Maximum edit dista
 parser.add_argument("--amp_db", default=AMPLICON_DATABASE, help=f"Amplicon sequence fasta file (default: {AMPLICON_DATABASE})")
 parser.add_argument("--amp_mask", default=AMPLICON_MASK_INFO, help=f"Amplicon low complexity mask info (default: {AMPLICON_MASK_INFO}, enter 'None' to disable)")
 parser.add_argument("--amp_to_gene", default=AMP_TO_GENE, help=f"Amplicon -> gene table (default: {AMP_TO_GENE})")
+parser.add_argument("-v", "--verbose", default=False, action='store_true', help="Increase verobsity")
 args = parser.parse_args()
 
-print(f"INFO: Loading {args.amp_db}, {args.amp_mask}, and {args.amp_to_gene}")
+if args.verbose:
+    verbose = True
+
+print(f"INFO: Loading {args.amp_db}, {args.amp_mask}, and {args.amp_to_gene}", file=sys.stderr)
 amplicons = parse_amp_db(args.amp_db, args.amp_to_gene)
 if not amplicons:
     print(f"ERROR: No amplicons in {args.amp_db}", file=sys.stderr)
