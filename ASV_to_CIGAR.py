@@ -158,11 +158,10 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5):
     if min_homopolymer_length > 1:
         homopolymer_runs = _get_homopolymer_runs(aln[0], min_length=min_homopolymer_length)
 
-    if verbose:
-        if len(aln[0].seq.lstrip("-")) != aln.get_alignment_length():
-            print(f"WARNING: {os.path.basename(alignment)} extends beyond 5' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
-        elif len(aln[0].seq.rstrip("-")) != aln.get_alignment_length():
-            print(f"WARNING: {os.path.basename(alignment)} extends beyond 3' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
+    if len(aln[0].seq.lstrip("-")) != aln.get_alignment_length():
+        print(f"WARNING: {os.path.basename(alignment)} extends beyond 5' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
+    elif len(aln[0].seq.rstrip("-")) != aln.get_alignment_length():
+        print(f"WARNING: {os.path.basename(alignment)} extends beyond 3' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
 
     gene = aln[0].id.split(":")[0]
     masked = mask.get(gene, None)
@@ -171,6 +170,7 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5):
     for seq in aln[1:]:
         pos = start + 1
         cigar = ""
+        indel = False
         for i in range(start, end):
             if masked and (pos-1) in masked:
                 pass # masked position in gene. mask info is 0-based :(
@@ -180,18 +180,26 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5):
                         print(f"INFO: Skipping homopolymer run (poly-{anchor[i]}) beginning at position {pos} in {os.path.basename(alignment)}", file=sys.stderr)
             elif seq[i] != anchor[i]:
                 if anchor[i] == "-":
-                    if i == start or anchor[i-1] != "-":
+                    if not indel:
+                        indel = True
                         cigar += f"{pos}I="
                         if i:
-                            cigar += anchor[i-1]
+                            for j in range(1,len(anchor)-i):
+                                if anchor[i-j] != "-":
+                                    cigar += anchor[i-j]
+                                    break
                     cigar += seq[i]
                     continue
-                elif seq[i] == "-":
-                    if i == start or seq[i-1] != "-":
+                if seq[i] == "-":
+                    if not indel:
+                        indel = True
                         cigar += f"{pos}D="
                     cigar += f"{anchor[i]}"
                 else:
                     cigar += f"{pos}{seq[i]}"
+                    indel = False
+            else:
+                indel = False
             pos += 1
 
         if not cigar:
