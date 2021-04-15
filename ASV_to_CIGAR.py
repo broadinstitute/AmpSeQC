@@ -4,10 +4,11 @@ import sys
 import os
 import subprocess
 
-from Bio import SeqIO, AlignIO
+from Bio import SeqIO, AlignIO, Seq
 
 # full gene targets for the amplicons in the gt-seq panel (except vivax)
 AMPLICON_DATABASE="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicon_genes.fasta"
+AMPLICON_MASK_INFO="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicon_genes.mask"
 AMP_TO_GENE="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicon_to_gene_id.txt"
 
 # parse amplicon name to gene id
@@ -22,6 +23,24 @@ def parse_amp_to_gene(file=AMP_TO_GENE):
                 gene2amp[gene] = []
             gene2amp[gene].append(amp)
     return gene2amp
+
+
+# parse amplicon dust mask info
+def parse_dustmasker(mask_info=AMPLICON_MASK_INFO):
+    if not mask_info:
+        return
+    mask = {}
+    with open(mask_info) as f:
+        for line in f:
+            line = line.strip().split("\t")
+            gene = line[0].split(":")[0][1:]
+            if gene not in mask:
+                mask[gene] = set()
+            start = int(line[1])
+            end = int(line[2])+1
+            mask[gene].update(list(range(start, end)))
+    return mask
+
 
 # parse amplicon database
 def parse_amp_db(fasta_file=AMPLICON_DATABASE, amp_to_gene_file=AMP_TO_GENE):
@@ -125,7 +144,7 @@ def _get_homopolymer_runs(seq, min_length=5):
 
 
 # parse muscle alignment
-def parse_alignment(alignment, min_homopolymer_length=5):
+def parse_alignment(alignment, mask={}, min_homopolymer_length=5):
     aln = AlignIO.read(alignment, "fasta")
     aln.sort(key = lambda record: (record.id[:5] != "PF3D7", record.id))
     anchor = aln[0]
@@ -142,13 +161,16 @@ def parse_alignment(alignment, min_homopolymer_length=5):
     elif len(aln[0].seq.rstrip("-")) != aln.get_alignment_length():
         print(f"WARNING: {os.path.basename(alignment)} extends beyond 3' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
 
+    gene = aln[0].id.split(":")[0]
+    masked = mask.get(gene, None)
+
     asv_to_cigar = {}
     for seq in aln[1:]:
         pos = start + 1
         cigar = ""
         for i in range(start, end):
-            if aln[0][i] in ['a', 'c', 'g', 't']:
-                pass # dustmasker
+            if masked and (pos-1) in masked:
+                pass # masked position in gene. mask info is 0-based :(
             elif min_homopolymer_length > 1 and i in homopolymer_runs:
                 if i and i-1 not in homopolymer_runs and seq.id == aln[1].id:
                     print(f"INFO: Skipping homopolymer run (poly-{anchor[i]}) beginning at position {pos} in {os.path.basename(alignment)}", file=sys.stderr)
@@ -175,14 +197,14 @@ def parse_alignment(alignment, min_homopolymer_length=5):
 
 
 # get variants per amplicon per position
-def parse_alignments(bins, min_homopolymer_length=5, outdir="ASVs"):
+def parse_alignments(bins, mask={}, min_homopolymer_length=5, outdir="ASVs"):
     cigars = {}
     for amplicon in bins:
         msa = os.path.join(outdir, f"{amplicon}.msa")
         if not os.path.isfile(msa):
             print(f"ERROR: Could not find {msa}", file=sys.stderr)
             continue
-        cigars[amplicon] = parse_alignment(msa, min_homopolymer_length=min_homopolymer_length)
+        cigars[amplicon] = parse_alignment(msa, mask=mask, min_homopolymer_length=min_homopolymer_length)
     
     return cigars
 
@@ -204,15 +226,21 @@ parser.add_argument("-p", "--polyN", type=int, default=5, help="Mask homopolymer
 parser.add_argument("--min_reads", type=int, default=0, help="Minimum total reads to include ASV (default: 0)")
 parser.add_argument("--min_samples", type=int, default=0, help="Minimum samples to include ASV (default: 0)")
 parser.add_argument("--max_dist", type=int, default=-1, help="Maximum edit distance to include ASV (default: -1, disabled)")
-parser.add_argument("--amp_db", default=AMPLICON_DATABASE, help=f"Amplicon sequence database (default: {AMPLICON_DATABASE})")
+parser.add_argument("--amp_db", default=AMPLICON_DATABASE, help=f"Amplicon sequence fasta file (default: {AMPLICON_DATABASE})")
+parser.add_argument("--amp_mask", default=AMPLICON_MASK_INFO, help=f"Amplicon low complexity mask info (default: {AMPLICON_MASK_INFO}, enter 'None' to disable)")
 parser.add_argument("--amp_to_gene", default=AMP_TO_GENE, help=f"Amplicon -> gene table (default: {AMP_TO_GENE})")
 args = parser.parse_args()
 
-print(f"INFO: Loading {args.amp_db} and {args.amp_to_gene}")
+print(f"INFO: Loading {args.amp_db}, {args.amp_mask}, and {args.amp_to_gene}")
 amplicons = parse_amp_db(args.amp_db, args.amp_to_gene)
 if not amplicons:
     print(f"ERROR: No amplicons in {args.amp_db}", file=sys.stderr)
     sys.exit(1)
+
+if args.amp_mask in ["None", 'none', 'NONE']:
+    mask = {}
+else:
+    mask = parse_dustmasker(args.amp_mask)
 
 print(f"INFO: Loading {args.fasta}")
 asvs = get_asv_seqs(args.fasta)
@@ -236,7 +264,7 @@ print("INFO: Running MUSCLE aligner on amplicon fasta files. Please wait...", fi
 run_muscle(bins, outdir=outdir)
 
 print("INFO: Parsing alignments to CIGAR strings")
-cigars = parse_alignments(bins, min_homopolymer_length=args.polyN, outdir=outdir)
+cigars = parse_alignments(bins, mask=mask, min_homopolymer_length=args.polyN, outdir=outdir)
 if not cigars:
     print("ERROR: could not determine CIGAR strings", file=sys.stderr)
     sys.exit(1)
