@@ -379,7 +379,7 @@ def main():
     DEFAULT_ANNOT = os.path.realpath(os.path.join(os.path.dirname(__file__), DEFAULT_ANNOT))
     parser = ArgumentParser(description="Amplicon sequencing quality control pipeline", 
                             usage="%(prog)s [options] -c [read_counts] -r [ref.fasta] -a [annot.gff] fastq [fastq ...]",
-                            epilog="Contact tim.straub@broadinstitute.org for details.")
+                            epilog="(C)2021 Broad Institute")
     parser.add_argument("fastq", nargs="+", help="Paired-end fastq files (can be gzipped). Expects pairs to be in separate files.")
     parser.add_argument("-c", "--counts", default="read_counts.tsv", help="Read count tsv file (default: read_counts.tsv)")
     parser.add_argument("-r", "--ref", default=DEFAULT_REF, help="Indexed reference fasta file to align to (default: %s)" % DEFAULT_REF)
