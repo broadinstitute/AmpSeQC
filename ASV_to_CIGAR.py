@@ -6,7 +6,7 @@ import subprocess
 
 from Bio import SeqIO, AlignIO, Seq
 
-# full gene targets for the amplicons in the gt-seq panel (except vivax)
+# amplicon sequence and DUST mask info for the amplicons in the gt-seq panel (except vivax)
 AMPLICON_DATABASE="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicons.fasta"
 AMPLICON_MASK_INFO="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicons.mask"
 
@@ -64,6 +64,7 @@ def parse_asv_table(file, min_reads=0, min_samples=0, max_dist=-1):
 # parse ASV fasta file
 def get_asv_seqs(file):
     return {seq.id: seq for seq in SeqIO.parse(file, "fasta")}
+
 
 # write amplicon fasta files
 def wrte_amplicon_fastas(asvs, bins, amplicons, outdir="ASVs"):
@@ -141,9 +142,9 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
         homopolymer_runs = _get_homopolymer_runs(aln[0], min_length=min_homopolymer_length)
 
     if len(aln[0].seq.lstrip("-")) != aln.get_alignment_length():
-        print(f"WARNING: {os.path.basename(alignment)} extends beyond 5' end of reference gene.", file=sys.stderr)
+        print(f"WARNING: {os.path.basename(alignment)} extends beyond 5' end of reference sequence!", file=sys.stderr)
     elif len(aln[0].seq.rstrip("-")) != aln.get_alignment_length():
-        print(f"WARNING: {os.path.basename(alignment)} extends beyond 3' end of reference gene.", file=sys.stderr)
+        print(f"WARNING: {os.path.basename(alignment)} extends beyond 3' end of reference sequence!", file=sys.stderr)
 
     masked = mask.get(aln[0].id, None)
 
@@ -201,6 +202,7 @@ def parse_alignments(bins, mask={}, min_homopolymer_length=5, outdir="ASVs"):
     
     return cigars
 
+
 # write table of asv -> amplicon/cigar
 def write_cigar_strings(cigars, out="CIGARs.tsv"):
     with open(out, 'w') as w:
@@ -237,6 +239,7 @@ if not amplicons:
 
 
 if args.amp_mask in ["None", 'none', 'NONE']:
+    print(f"INFO: No mask data specified.", file=sys.stderr)
     mask = {}
 else:
     print(f"INFO: Loading {args.amp_mask}", file=sys.stderr)
@@ -248,14 +251,14 @@ if not asvs:
     print(f"ERROR: No ASV sequences in {args.fasta}", file=sys.stderr)
     sys.exit(1)
 
-print(f"INFO: Parsing {args.table} with total reads >= {args.min_reads}, samples >= {args.min_samples}, dist <= {args.max_dist}")
+print(f"INFO: Parsing {args.table} with total reads >= {args.min_reads}, samples >= {args.min_samples}, dist <= {args.max_dist}", file=sys.stderr)
 bins = parse_asv_table(args.table, min_reads=args.min_reads, min_samples=args.min_samples, max_dist=args.max_dist)
 if not bins:
     print(f"ERROR: No useable data in {args.table}", file=sys.stderr)
     sys.exit(1)
 
 outdir = args.alignments
-print(f"INFO: Writing amplicon fasta files to {outdir}")
+print(f"INFO: Writing amplicon fasta files to {outdir}", file=sys.stderr)
 if not os.path.isdir(outdir):
     os.mkdir(outdir)
 wrte_amplicon_fastas(asvs, bins, amplicons, outdir=outdir)
@@ -263,11 +266,11 @@ wrte_amplicon_fastas(asvs, bins, amplicons, outdir=outdir)
 print("INFO: Running MUSCLE aligner on amplicon fasta files. Please wait...", file=sys.stderr)
 run_muscle(bins, outdir=outdir)
 
-print("INFO: Parsing alignments to CIGAR strings")
+print("INFO: Parsing alignments to CIGAR strings", file=sys.stderr)
 cigars = parse_alignments(bins, mask=mask, min_homopolymer_length=args.polyN, outdir=outdir)
 if not cigars:
     print("ERROR: could not determine CIGAR strings", file=sys.stderr)
     sys.exit(1)
 
 write_cigar_strings(cigars, args.out)
-print(f"INFO: Wrote ASV->CIGAR to {args.out}")
+print(f"INFO: Wrote ASV->CIGAR to {args.out}", file=sys.stderr)
