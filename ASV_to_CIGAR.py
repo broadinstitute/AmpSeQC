@@ -210,7 +210,7 @@ def write_cigar_strings(cigars, out="CIGARs.tsv"):
                 w.write(f"{ASV}\t{amplicon}\t{cigars[amplicon][ASV]}\n")
 
 
-parser = argparse.ArgumentParser(usage="%(prog)s [options] -f FASTA -t TABLE -a ALIGNMENTS -o OUT",
+parser = argparse.ArgumentParser(usage="%(prog)s [options] fasta table alignments out",
                                  description="Convert ASVs from DADA2 pipeline to pseudo-CIGAR strings.",
                                  epilog="Contact tim.straub@broadinstitute.org for details.")
 parser.add_argument("fasta", help="Fasta file of ASV sequences from DADA2 pipeline")
