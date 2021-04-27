@@ -213,10 +213,10 @@ def write_cigar_strings(cigars, out="CIGARs.tsv"):
 parser = argparse.ArgumentParser(usage="%(prog)s [options] -f FASTA -t TABLE -a ALIGNMENTS -o OUT",
                                  description="Convert ASVs from DADA2 pipeline to pseudo-CIGAR strings.",
                                  epilog="Contact tim.straub@broadinstitute.org for details.")
-parser.add_argument("-f", "--fasta", required=True, help="Fasta file of ASV sequences from DADA2 pipeline")
-parser.add_argument("-t", "--table", required=True, help="ASV table from DADA2 pipeline")
-parser.add_argument("-a", "--alignments", required=True, help="Directory to store ASV alignment files")
-parser.add_argument("-o", "--out", required=True, help="Output file for ASV -> CIGAR string table")
+parser.add_argument("fasta", help="Fasta file of ASV sequences from DADA2 pipeline")
+parser.add_argument("table", help="ASV table from DADA2 pipeline")
+parser.add_argument("alignments", help="Directory to store ASV alignment files")
+parser.add_argument( "out", help="Output file for ASV -> CIGAR string table")
 parser.add_argument("-p", "--polyN", type=int, default=5, help="Mask homopolymer runs length >= polyN (default: 5; disabled < 2)")
 parser.add_argument("--min_reads", type=int, default=0, help="Minimum total reads to include ASV (default: 0)")
 parser.add_argument("--min_samples", type=int, default=0, help="Minimum samples to include ASV (default: 0)")
