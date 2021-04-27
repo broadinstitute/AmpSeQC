@@ -146,11 +146,16 @@ def _get_homopolymer_runs(seq, min_length=5):
 
 
 # parse muscle alignment
-def parse_alignment(alignment, mask={}, min_homopolymer_length=5):
+def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None):
     aln = AlignIO.read(alignment, "fasta")
-    aln.sort(key = lambda record: (record.id[:5] != "PF3D7", record.id))
+    #aln.sort(key = lambda record: (record.id[:5] != "PF3D7", record.id))
+    #anchor = aln[0]
+    #if anchor.id[:5] != "PF3D7":
+        #print(f"ERROR: No anchor gene for {alignment}", file=sys.stderr)
+
+    aln.sort(key = lambda record: (record.id != amplicon, record.id))
     anchor = aln[0]
-    if anchor.id[:5] != "PF3D7":
+    if anchor.id != amplicon:
         print(f"ERROR: No anchor gene for {alignment}", file=sys.stderr)
 
     start, end = _find_asv_coords(aln)
@@ -216,7 +221,7 @@ def parse_alignments(bins, mask={}, min_homopolymer_length=5, outdir="ASVs"):
         if not os.path.isfile(msa):
             print(f"ERROR: Could not find {msa}", file=sys.stderr)
             continue
-        cigars[amplicon] = parse_alignment(msa, mask=mask, min_homopolymer_length=min_homopolymer_length)
+        cigars[amplicon] = parse_alignment(msa, mask=mask, min_homopolymer_length=min_homopolymer_length, amplicon=amplicon)
     
     return cigars
 
