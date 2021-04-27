@@ -7,25 +7,10 @@ import subprocess
 from Bio import SeqIO, AlignIO, Seq
 
 # full gene targets for the amplicons in the gt-seq panel (except vivax)
-AMPLICON_DATABASE="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicon_genes.fasta"
-AMPLICON_MASK_INFO="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicon_genes.mask"
-AMP_TO_GENE="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicon_to_gene_id.txt"
+AMPLICON_DATABASE="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicons.fasta"
+AMPLICON_MASK_INFO="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicons.mask"
 
 verbose = False
-
-# parse amplicon name to gene id
-def parse_amp_to_gene(file=AMP_TO_GENE):
-    gene2amp = {}
-    with open(file) as f:
-        for line in f:
-            line=line.strip().split("\t")
-            amp = line[0]
-            gene = line[1]
-            if gene not in gene2amp:
-                gene2amp[gene] = []
-            gene2amp[gene].append(amp)
-    return gene2amp
-
 
 # parse amplicon dust mask info
 def parse_dustmasker(mask_info=AMPLICON_MASK_INFO):
@@ -45,13 +30,10 @@ def parse_dustmasker(mask_info=AMPLICON_MASK_INFO):
 
 
 # parse amplicon database
-def parse_amp_db(fasta_file=AMPLICON_DATABASE, amp_to_gene_file=AMP_TO_GENE):
-    gene2amp = parse_amp_to_gene(amp_to_gene_file)
+def parse_amp_db(fasta_file=AMPLICON_DATABASE):
     amplicons = {}
     for seq in SeqIO.parse(fasta_file, "fasta"):
-        gene = seq.id.split("::")[0]
-        for amp in gene2amp[gene]:
-            amplicons[amp] = seq
+        amplicons[seq.id] = seq
     return amplicons
 
 
@@ -148,11 +130,6 @@ def _get_homopolymer_runs(seq, min_length=5):
 # parse muscle alignment
 def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None):
     aln = AlignIO.read(alignment, "fasta")
-    #aln.sort(key = lambda record: (record.id[:5] != "PF3D7", record.id))
-    #anchor = aln[0]
-    #if anchor.id[:5] != "PF3D7":
-        #print(f"ERROR: No anchor gene for {alignment}", file=sys.stderr)
-
     aln.sort(key = lambda record: (record.id != amplicon, record.id))
     anchor = aln[0]
     if anchor.id != amplicon:
@@ -164,12 +141,11 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
         homopolymer_runs = _get_homopolymer_runs(aln[0], min_length=min_homopolymer_length)
 
     if len(aln[0].seq.lstrip("-")) != aln.get_alignment_length():
-        print(f"WARNING: {os.path.basename(alignment)} extends beyond 5' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
+        print(f"WARNING: {os.path.basename(alignment)} extends beyond 5' end of reference gene.", file=sys.stderr)
     elif len(aln[0].seq.rstrip("-")) != aln.get_alignment_length():
-        print(f"WARNING: {os.path.basename(alignment)} extends beyond 3' end of reference gene. ASVs may include non-genic sequence.", file=sys.stderr)
+        print(f"WARNING: {os.path.basename(alignment)} extends beyond 3' end of reference gene.", file=sys.stderr)
 
-    gene = aln[0].id.split(":")[0]
-    masked = mask.get(gene, None)
+    masked = mask.get(aln[0].id, None)
 
     asv_to_cigar = {}
     for seq in aln[1:]:
@@ -245,22 +221,23 @@ parser.add_argument("--min_samples", type=int, default=0, help="Minimum samples 
 parser.add_argument("--max_dist", type=int, default=-1, help="Maximum edit distance to include ASV (default: -1, disabled)")
 parser.add_argument("--amp_db", default=AMPLICON_DATABASE, help=f"Amplicon sequence fasta file (default: {AMPLICON_DATABASE})")
 parser.add_argument("--amp_mask", default=AMPLICON_MASK_INFO, help=f"Amplicon low complexity mask info (default: {AMPLICON_MASK_INFO}, enter 'None' to disable)")
-parser.add_argument("--amp_to_gene", default=AMP_TO_GENE, help=f"Amplicon -> gene table (default: {AMP_TO_GENE})")
 parser.add_argument("-v", "--verbose", default=False, action='store_true', help="Increase verobsity")
 args = parser.parse_args()
 
 if args.verbose:
     verbose = True
 
-print(f"INFO: Loading {args.amp_db}, {args.amp_mask}, and {args.amp_to_gene}", file=sys.stderr)
-amplicons = parse_amp_db(args.amp_db, args.amp_to_gene)
+print(f"INFO: Loading {args.amp_db}", file=sys.stderr)
+amplicons = parse_amp_db(args.amp_db)
 if not amplicons:
     print(f"ERROR: No amplicons in {args.amp_db}", file=sys.stderr)
     sys.exit(1)
 
+
 if args.amp_mask in ["None", 'none', 'NONE']:
     mask = {}
 else:
+    print(f"INFO: Loading {args.amp_mask}", file=sys.stderr)
     mask = parse_dustmasker(args.amp_mask)
 
 print(f"INFO: Loading {args.fasta}")
