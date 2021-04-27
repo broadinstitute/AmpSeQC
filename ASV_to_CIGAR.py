@@ -68,7 +68,7 @@ def parse_asv_table(file, min_reads=0, min_samples=0, max_dist=-1):
             nsamples = int(line[2])
             if nsamples < min_samples:
                 continue
-            dist = min(int(line[5]), int(line[6]), int(line[8]), int(line[9]))
+            dist = min(int(line[5])+int(line[6]), int(line[8])+int(line[9]))
             if max_dist >= 0 and dist > max_dist:
                 continue
             ASV = line[0]
@@ -208,8 +208,8 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
             pos += 1
 
         if not cigar:
-            cigar = f"M={start}-{pos-1}"
-        asv_to_cigar[seq.id] = cigar
+            cigar = f"M={start+1}-{pos}"
+        asv_to_cigar[seq.id] = cigarq
     return asv_to_cigar
 
 
