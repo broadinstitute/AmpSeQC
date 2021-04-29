@@ -170,6 +170,8 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
                     elif i+1 not in homopolymer_runs and seq.id == aln[1].id:
                         print(f"INFO: End of homopolymer run (poly-{anchor[i]}) at position {pos} in {os.path.basename(alignment)}", file=sys.stderr)
                 indel = False
+                if anchor[i] == "-":
+                    continue
             elif seq[i] != anchor[i]:
                 if anchor[i] == "-":
                     if not indel:
