@@ -181,7 +181,7 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
                                     cigar += anchor[i-j]
                                     break
                     cigar += seq[i]
-                if seq[i] == "-":
+                elif seq[i] == "-":
                     if not indel:
                         indel = True
                         cigar += f"{pos}D="
