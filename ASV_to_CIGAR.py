@@ -155,7 +155,7 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
         for i in range(len(aln[0])):
             if masked and (pos-1) in masked:
                 if verbose and seq.id == aln[1].id:
-                    if (pos-2) not in masked:
+                    if (pos-2) not in masked and pos-1 == i:
                         print(f"INFO: Skipping masked positions starting at {pos} in {os.path.basename(alignment)}", file=sys.stderr)
                     elif pos not in masked:
                         print(f"INFO: Ending masked positions at {pos} in {os.path.basename(alignment)}", file=sys.stderr)
