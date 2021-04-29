@@ -1,19 +1,22 @@
 #!/usr/bin/env python
+"""Align ASVs to target amplicon reference and report variants as CIGAR strings
+"""
 import argparse
 import sys
 import os
 import subprocess
 
-from Bio import SeqIO, AlignIO, Seq
+from Bio import SeqIO, AlignIO
 
-# amplicon sequence and DUST mask info for the amplicons in the gt-seq panel (except vivax)
+# default location of amplicon sequences and DUST mask info for the gt-seq panel
 AMPLICON_DATABASE="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicons.fasta"
 AMPLICON_MASK_INFO="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicons.mask"
 
-verbose = False
+verbose = False # set to true to report more messages
 
 # parse amplicon dust mask info
 def parse_dustmasker(mask_info=AMPLICON_MASK_INFO):
+    """Parse DUST accloc format mask info"""
     if not mask_info:
         return
     mask = {}
@@ -23,14 +26,15 @@ def parse_dustmasker(mask_info=AMPLICON_MASK_INFO):
             gene = line[0].split(":")[0][1:]
             if gene not in mask:
                 mask[gene] = set()
-            start = int(line[1])
-            end = int(line[2])+1
-            mask[gene].update(list(range(start, end)))
+            start = int(line[1])+1 # mask info is 0-based, but we want 1-based
+            end = int(line[2])+2 # +1 for 1-based and +1 to include last pos in range
+            mask[gene].update(list(range(start, end))) # add all pos in between start and end
     return mask
 
 
 # parse amplicon database
 def parse_amp_db(fasta_file=AMPLICON_DATABASE):
+    """Load sequences from fasta file of amplicons"""
     amplicons = {}
     for seq in SeqIO.parse(fasta_file, "fasta"):
         amplicons[seq.id] = seq
@@ -39,6 +43,7 @@ def parse_amp_db(fasta_file=AMPLICON_DATABASE):
 
 # parse asv to amplicon table
 def parse_asv_table(file, min_reads=0, min_samples=0, max_dist=-1):
+    """Parse DADA2 ASV table format"""
     bins = {}
     with open(file) as f:
         f.readline()
@@ -46,28 +51,31 @@ def parse_asv_table(file, min_reads=0, min_samples=0, max_dist=-1):
             line = line.strip().split("\t")
             nreads = int(line[1])
             if nreads < min_reads:
-                continue
+                continue # skip if too few total reads
             nsamples = int(line[2])
             if nsamples < min_samples:
-                continue
+                continue # skip if in too few samples
+            # distance is minimum of 3d7 snv + indel and dd2 snv + indel
             dist = min(int(line[5])+int(line[6]), int(line[8])+int(line[9]))
             if max_dist >= 0 and dist > max_dist:
-                continue
+                continue # skip if distance > max distance specified
             ASV = line[0]
             amplicon = line[4]
             if amplicon not in bins:
                 bins[amplicon] = []
             bins[amplicon].append(ASV)
-    return bins
+    return bins # bins is dict of amplicon -> list of ASVs assigned to amplicon
 
 
 # parse ASV fasta file
 def get_asv_seqs(file):
+    """Load ASV sequences from fasta file"""
     return {seq.id: seq for seq in SeqIO.parse(file, "fasta")}
 
 
 # write amplicon fasta files
 def wrte_amplicon_fastas(asvs, bins, amplicons, outdir="ASVs"):
+    """Write one fasta file per amplicon, containing reference sequence and assigned ASVs"""
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
     
@@ -82,6 +90,7 @@ def wrte_amplicon_fastas(asvs, bins, amplicons, outdir="ASVs"):
 
 # run muscle for each amplicon
 def run_muscle(bins, outdir="ASVs"):
+    """Iterate through amplicons, aligning each one with MUSCLE"""
     for amplicon in bins:
         fasta = os.path.join(outdir, f"{amplicon}.fasta")
         if not os.path.isfile(fasta):
@@ -91,20 +100,9 @@ def run_muscle(bins, outdir="ASVs"):
         subprocess.run(["muscle", "-in", fasta, "-out", msa], capture_output=True)
 
 
-# get coords of amplicons (where there aren't gaps across all ASVs)
-def _find_asv_coords(alignment):
-    gaps = {i:0 for i in range(alignment.get_alignment_length())}
-    for seq in alignment[1:]:
-        for i in gaps:
-            if seq[i] == '-':
-                gaps[i] += 1
-    n_asvs = len(alignment) - 1
-    non_gaps = [i for i in gaps if gaps[i] < n_asvs]
-    return min(non_gaps), max(non_gaps)
-
-
 # get coords of homopolymer runs
 def _get_homopolymer_runs(seq, min_length=5):
+    """Detect and report homopolymer runs of minimum length"""
     runs = set()
     prev = ""
     run = 0
@@ -130,14 +128,18 @@ def _get_homopolymer_runs(seq, min_length=5):
 
 # parse muscle alignment
 def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None):
+    """Parse amplicon alignment file, converting ASV to CIGAR string"""
     aln = AlignIO.read(alignment, "fasta")
+    # sort such that amplicon reference is first in alignment
     aln.sort(key = lambda record: (record.id != amplicon, record.id))
     anchor = aln[0]
     if anchor.id != amplicon:
         print(f"ERROR: No anchor gene for {alignment}", file=sys.stderr)
-
+        # don't parse if amplicon reference not in alignment (this shouldn't happen)
+        return
 
     if min_homopolymer_length > 1:
+        # detect homopolymer runs in reference sequence
         homopolymer_runs = _get_homopolymer_runs(aln[0], min_length=min_homopolymer_length)
 
     if len(anchor.seq.lstrip("-")) != aln.get_alignment_length():
@@ -149,12 +151,13 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
 
     asv_to_cigar = {}
     for seq in aln[1:]:
-        pos = 1
-        cigar = ""
-        indel = False
-        masking = False
+        pos = 1 # start at position 1 in anchor sequence
+        cigar = ""  # cigar string to output, start empty
+        indel = False # indicate alignment column in an indel
+        masking = False # indicate alignment column is being masked
         for i in range(aln.get_alignment_length()):
-            if masked and ((pos-1) in masked or (pos in masked and anchor[i] == '-')):
+            # if anchor pos masked, or next base in anchor is masked and anchor position is a gap
+            if masked and (pos in masked or (pos+1 in masked and anchor[i] == '-')):
                 if verbose and seq.id == aln[1].id:
                     if not masking:
                         print(f"INFO: Skipping masked positions starting at {pos} in {os.path.basename(alignment)}", file=sys.stderr)
@@ -208,6 +211,7 @@ def parse_alignments(bins, mask={}, min_homopolymer_length=5, outdir="ASVs"):
         if not os.path.isfile(msa):
             print(f"ERROR: Could not find {msa}", file=sys.stderr)
             continue
+        # store CIGAR strings per amplicon in dict
         cigars[amplicon] = parse_alignment(msa, mask=mask, min_homopolymer_length=min_homopolymer_length, amplicon=amplicon)
     
     return cigars
@@ -216,8 +220,10 @@ def parse_alignments(bins, mask={}, min_homopolymer_length=5, outdir="ASVs"):
 # write table of asv -> amplicon/cigar
 def write_cigar_strings(cigars, out="CIGARs.tsv"):
     with open(out, 'w') as w:
+        # write tab file with ASV, amplicon target, and CIGAR string
         w.write("ASV\tAmplicon\tCIGAR\n")
         for amplicon in sorted(cigars):
+            # sort on ASV number (assuming "H123" format)
             for ASV in sorted(cigars[amplicon], key = lambda x: int(x[1:])):
                 w.write(f"{ASV}\t{amplicon}\t{cigars[amplicon][ASV]}\n")
 
