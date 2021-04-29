@@ -238,7 +238,7 @@ def write_cigar_strings(cigars, out="CIGARs.tsv"):
 
 parser = argparse.ArgumentParser(usage="%(prog)s [options] fasta table alignments out",
                                  description="Convert ASVs from DADA2 pipeline to pseudo-CIGAR strings.",
-                                 epilog="Contact tim.straub@broadinstitute.org for details.")
+                                 epilog="(C)2021 Broad Institute")
 parser.add_argument("fasta", help="Fasta file of ASV sequences from DADA2 pipeline")
 parser.add_argument("table", help="ASV table from DADA2 pipeline")
 parser.add_argument("alignments", help="Directory to store ASV alignment files")
@@ -279,8 +279,15 @@ if not asvs:
     sys.exit(1)
 
 print(f"INFO: Parsing {args.table} with total reads >= {args.min_reads}, samples >= {args.min_samples}, snv_dist <= {args.max_snv_dist}, indel_dist <= {args.max_indel_dist}", file=sys.stderr)
+
 if args.include_failed:
-    print(f"WARNING: Including ASVs that failed post-DADA2 filters! This is not recommended.", file=sys.stderr) 
+    print("WARNING: Including ASVs that failed post-DADA2 filters! This is not recommended.", file=sys.stderr)
+else:
+    print("INFO: Excluding ASVs that failed post-DADA2 filters.", file=sys.stderr)
+
+if args.exclude_bimeras:
+    print("INFO: Excluding ASVs that DADA2 marked as bimeras.", file=sys.stderr)
+
 bins = parse_asv_table(args.table, min_reads=args.min_reads, min_samples=args.min_samples, max_snv_dist=args.max_snv_dist, max_indel_dist=args.max_indel_dist, include_failed=args.include_failed, exclude_bimeras=args.exclude_bimeras)
 if not bins:
     print(f"ERROR: No useable data in {args.table}", file=sys.stderr)
