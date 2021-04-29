@@ -42,25 +42,33 @@ def parse_amp_db(fasta_file=AMPLICON_DATABASE):
 
 
 # parse asv to amplicon table
-def parse_asv_table(file, min_reads=0, min_samples=0, max_dist=-1):
+def parse_asv_table(file, min_reads=0, min_samples=0, max_snv_dist=-1, max_indel_dist=-1, include_failed=False, exclude_bimeras=False):
     """Parse DADA2 ASV table format"""
     bins = {}
     with open(file) as f:
         f.readline()
         for line in f:
             line = line.strip().split("\t")
-            nreads = int(line[1])
-            if nreads < min_reads:
+            # total reads
+            if int(line[1]) < min_reads: 
                 continue # skip if too few total reads
-            nsamples = int(line[2])
-            if nsamples < min_samples:
+            # total samples
+            if int(line[2]) < min_samples: 
                 continue # skip if in too few samples
-            # distance is minimum of 3d7 snv + indel and dd2 snv + indel
-            dist = min(int(line[5])+int(line[6]), int(line[8])+int(line[9]))
-            if max_dist >= 0 and dist > max_dist:
-                continue # skip if distance > max distance specified
-            ASV = line[0]
-            amplicon = line[4]
+            # minimum SNV distance (3D7 or DD2)
+            if max_snv_dist >= 0 and min(int(line[5]), int(line[8])) > max_snv_dist:
+                continue # skip if snv distance > threshold
+            # minimum indel distance (3D7 or DD2)
+            if max_indel_dist >= 0 and min(int(line[6]), int(line[9])) > max_indel_dist:
+                continue # skip if indel distance > threshold
+            # check for failing the snv_filter and indel_filter
+            if not include_failed and (line[10] == "FAIL" or line[11] == "FAIL"):
+                continue # failed post-DADA2 filters
+            # check for dada2 calling asv a bimera
+            if exclude_bimeras and line[12] == "TRUE":
+                continue # skip if dada2 called bimera
+            ASV = line[0] # (e.g. H123)
+            amplicon = line[4] # target gene/amplicon
             if amplicon not in bins:
                 bins[amplicon] = []
             bins[amplicon].append(ASV)
@@ -238,7 +246,10 @@ parser.add_argument( "out", help="Output file for ASV -> CIGAR string table")
 parser.add_argument("-p", "--polyN", type=int, default=5, help="Mask homopolymer runs length >= polyN (default: 5; disabled < 2)")
 parser.add_argument("--min_reads", type=int, default=0, help="Minimum total reads to include ASV (default: 0)")
 parser.add_argument("--min_samples", type=int, default=0, help="Minimum samples to include ASV (default: 0)")
-parser.add_argument("--max_dist", type=int, default=-1, help="Maximum edit distance to include ASV (default: -1, disabled)")
+parser.add_argument("--include_failed", action="store_true", default=False, help="INCLUDE ASVs that failed post-DADA2 filters (default: False)")
+parser.add_argument("--exclude_bimeras", action="store_true", default=False, help="EXCLUDE ASVs that DADA2 flagged as bimeras (default: False)")
+parser.add_argument("--max_snv_dist", type=int, default=-1, help="Maximum SNV distance to include ASV (default: -1, disabled)")
+parser.add_argument("--max_indel_dist", type=int, default=-1, help="Maximum indel distance to include ASV (default: -1, disabled)")
 parser.add_argument("--amp_db", default=AMPLICON_DATABASE, help=f"Amplicon sequence fasta file (default: {AMPLICON_DATABASE})")
 parser.add_argument("--amp_mask", default=AMPLICON_MASK_INFO, help=f"Amplicon low complexity mask info (default: {AMPLICON_MASK_INFO}, enter 'None' to disable)")
 parser.add_argument("-v", "--verbose", default=False, action='store_true', help="Increase verobsity")
@@ -267,8 +278,10 @@ if not asvs:
     print(f"ERROR: No ASV sequences in {args.fasta}", file=sys.stderr)
     sys.exit(1)
 
-print(f"INFO: Parsing {args.table} with total reads >= {args.min_reads}, samples >= {args.min_samples}, dist <= {args.max_dist}", file=sys.stderr)
-bins = parse_asv_table(args.table, min_reads=args.min_reads, min_samples=args.min_samples, max_dist=args.max_dist)
+print(f"INFO: Parsing {args.table} with total reads >= {args.min_reads}, samples >= {args.min_samples}, snv_dist <= {args.max_snv_dist}, indel_dist <= {args.max_indel_dist}", file=sys.stderr)
+if args.include_failed:
+    print(f"WARNING: Including ASVs that failed post-DADA2 filters! This is not recommended.", file=sys.stderr) 
+bins = parse_asv_table(args.table, min_reads=args.min_reads, min_samples=args.min_samples, max_snv_dist=args.max_snv_dist, max_indel_dist=args.max_indel_dist, include_failed=args.include_failed, exclude_bimeras=args.exclude_bimeras)
 if not bins:
     print(f"ERROR: No useable data in {args.table}", file=sys.stderr)
     sys.exit(1)
