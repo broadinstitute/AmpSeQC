@@ -152,15 +152,18 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
         pos = 1
         cigar = ""
         indel = False
-        for i in range(len(aln[0])):
+        masking = False
+        for i in range(aln.get_alignment_length()):
             if masked and (pos-1) in masked:
                 if verbose and seq.id == aln[1].id:
-                    if (pos-2) not in masked and pos-1 == i:
+                    if not masking:
                         print(f"INFO: Skipping masked positions starting at {pos} in {os.path.basename(alignment)}", file=sys.stderr)
+                        masking = True
                     elif pos not in masked:
                         print(f"INFO: Ending masked positions at {pos} in {os.path.basename(alignment)}", file=sys.stderr)
+                        masking = False
                 if anchor[i] == "-":
-                    continue # is this right?
+                    continue
                 indel = False
             elif min_homopolymer_length > 1 and i in homopolymer_runs:
                 if verbose and seq.id == aln[1].id:
