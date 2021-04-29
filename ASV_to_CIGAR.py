@@ -185,7 +185,8 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
             pos += 1
 
         if not cigar:
-            cigar = f"M={start+1}-{pos}"
+            #cigar = f"M={start+1}-{pos}"
+            cigar = "."
         asv_to_cigar[seq.id] = cigar
     return asv_to_cigar
 
