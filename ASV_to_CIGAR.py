@@ -140,9 +140,9 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
     if min_homopolymer_length > 1:
         homopolymer_runs = _get_homopolymer_runs(aln[0], min_length=min_homopolymer_length)
 
-    if len(aln[0].seq.lstrip("-")) != aln.get_alignment_length():
+    if len(anchor.seq.lstrip("-")) != aln.get_alignment_length():
         print(f"WARNING: {os.path.basename(alignment)} extends beyond 5' end of reference sequence!", file=sys.stderr)
-    elif len(aln[0].seq.rstrip("-")) != aln.get_alignment_length():
+    elif len(anchor.seq.rstrip("-")) != aln.get_alignment_length():
         print(f"WARNING: {os.path.basename(alignment)} extends beyond 3' end of reference sequence!", file=sys.stderr)
 
     masked = mask.get(aln[0].id, None)
@@ -154,16 +154,16 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
         indel = False
         masking = False
         for i in range(aln.get_alignment_length()):
-            if masked and (pos-1) in masked:
+            if masked and ((pos-1) in masked or (pos in masked and anchor[i] == '-')):
                 if verbose and seq.id == aln[1].id:
                     if not masking:
                         print(f"INFO: Skipping masked positions starting at {pos} in {os.path.basename(alignment)}", file=sys.stderr)
+                        if anchor[i] == '-':
+                            print(f"INFO: Gap in alignment at start of masked region!", file=sys.stderr)
                         masking = True
                     elif pos not in masked:
                         print(f"INFO: Ending masked positions at {pos} in {os.path.basename(alignment)}", file=sys.stderr)
                         masking = False
-                if anchor[i] == "-":
-                    continue
                 indel = False
             elif min_homopolymer_length > 1 and i in homopolymer_runs:
                 if verbose and seq.id == aln[1].id:
@@ -172,8 +172,6 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
                     elif i+1 not in homopolymer_runs:
                         print(f"INFO: End of homopolymer run (poly-{anchor[i]}) at position {pos} in {os.path.basename(alignment)}", file=sys.stderr)
                 indel = False
-                if anchor[i] == "-":
-                    continue
             elif seq[i] != anchor[i]:
                 if anchor[i] == "-":
                     if not indel:
@@ -185,7 +183,6 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
                                     cigar += anchor[i-j]
                                     break
                     cigar += seq[i]
-                    continue
                 if seq[i] == "-":
                     if not indel:
                         indel = True
@@ -196,10 +193,10 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
                     indel = False
             else:
                 indel = False
-            pos += 1
+            if anchor[i] != '-':
+                pos += 1
 
         if not cigar:
-            #cigar = f"M={start+1}-{pos}"
             cigar = "."
         asv_to_cigar[seq.id] = cigar
     return asv_to_cigar
