@@ -421,8 +421,11 @@ def run_multiqc():
 def main():
     global DEFAULT_REF
     global DEFAULT_ANNOT
-    DEFAULT_REF = os.path.realpath(os.path.join(os.path.dirname(__file__), DEFAULT_REF))
-    DEFAULT_ANNOT = os.path.realpath(os.path.join(os.path.dirname(__file__), DEFAULT_ANNOT))
+    if not os.path.isfile(DEFAULT_REF):
+        DEFAULT_REF = os.path.realpath(os.path.join(os.path.dirname(__file__), DEFAULT_REF))
+    if not os.path.isfile(DEFAULT_ANNOT):
+        DEFAULT_ANNOT = os.path.realpath(os.path.join(os.path.dirname(__file__), DEFAULT_ANNOT))
+    
     parser = ArgumentParser(description="Amplicon sequencing quality control pipeline", 
                             usage="%(prog)s [options] -c [read_counts] -r [ref.fasta] -a [annot.gff] fastq [fastq ...]",
                             epilog="(C)2021 Broad Institute")
