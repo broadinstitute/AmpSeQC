@@ -136,7 +136,7 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
     if anchor.id != amplicon:
         print(f"ERROR: No anchor gene for {alignment}", file=sys.stderr)
 
-    start, end = _find_asv_coords(aln)
+    #start, end = _find_asv_coords(aln)
 
     if min_homopolymer_length > 1:
         homopolymer_runs = _get_homopolymer_runs(aln[0], min_length=min_homopolymer_length)
@@ -150,10 +150,12 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
 
     asv_to_cigar = {}
     for seq in aln[1:]:
-        pos = start + 1
+        # pos = start + 1
+        pos = 1
         cigar = ""
         indel = False
-        for i in range(start, end):
+        #for i in range(start, end):
+        for i in range(len(aln[0])):
             if masked and (pos-1) in masked:
                 if verbose:
                     if (pos-2) not in masked:
