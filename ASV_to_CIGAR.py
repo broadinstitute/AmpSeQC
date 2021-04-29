@@ -155,11 +155,19 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
         indel = False
         for i in range(start, end):
             if masked and (pos-1) in masked:
-                pass # masked position in gene. mask info is 0-based :(
+                if verbose:
+                    if (pos-2) not in masked:
+                        print(f"INFO: Skipping masked positions starting at {pos} in {os.path.basename(alignment)}", file=sys.stderr)
+                    elif pos not in masked:
+                        print(f"INFO: Ending masked positions at {pos} in {os.path.basename(alignment)}", file=sys.stderr)
+                if anchor[i] == "-":
+                    continue # is this right?
             elif min_homopolymer_length > 1 and i in homopolymer_runs:
-                if i and i-1 not in homopolymer_runs and seq.id == aln[1].id:
-                    if verbose:
+                if verbose:
+                    if i and i-1 not in homopolymer_runs and seq.id == aln[1].id and verbose:
                         print(f"INFO: Skipping homopolymer run (poly-{anchor[i]}) beginning at position {pos} in {os.path.basename(alignment)}", file=sys.stderr)
+                    elif i+1 not in homopolymer_runs and seq.id == aln[1].id:
+                        print(f"INFO: End of homopolymer run (poly-{anchor[i]}) at position {pos} in {os.path.basename(alignment)}", file=sys.stderr)
             elif seq[i] != anchor[i]:
                 if anchor[i] == "-":
                     if not indel:
