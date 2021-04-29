@@ -433,7 +433,7 @@ def main():
     parser.add_argument("-c", "--counts", default="read_counts.tsv", help="Read count tsv file (default: read_counts.tsv)")
     parser.add_argument("-r", "--ref", default=DEFAULT_REF, help=f"Indexed reference fasta file to align to (default: {DEFAULT_REF})")
     parser.add_argument("-a", "--annot", default=DEFAULT_ANNOT, help=f"Amplicon/gene gff3 file to generate read counts of (default: {DEFAULT_ANNOT})")
-    parser.add_argument("--2color", dest="two_color", action="store_true", default=False, help="Run with 2 color chemistry (e.g. iSeq) QC parameters (default: False")
+    parser.add_argument("--2color", dest="two_color", action="store_true", default=False, help="Run with 2 color chemistry (e.g. iSeq) QC parameters (default: False)")
     parser.add_argument("-l", "--min_length", type=int, default=70, help="Minimum read length (in bp) to retain after trimming (default: 70)")
     parser.add_argument("-q", "--min_bq", type=int, default=20, help="Minimum base quality (PHRED score) to retain after trimming (default: 20)")
     parser.add_argument("-N", "--max_N", type=int, default=1, help="Maximum number of 'N' bases allowed in read (default: 1)")
