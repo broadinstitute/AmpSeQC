@@ -10,12 +10,11 @@ from Bio import SeqIO, AlignIO
 
 # default location of amplicon sequences and DUST mask info for the gt-seq panel
 AMPLICON_DATABASE="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicons.fasta"
-AMPLICON_MASK_INFO="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicons.mask"
 
 verbose = False # set to true to report more messages
 
 # parse amplicon dust mask info
-def parse_dustmasker(mask_info=AMPLICON_MASK_INFO):
+def parse_dustmasker(mask_info):
     """Parse DUST accloc format mask info"""
     if not mask_info:
         return
@@ -29,6 +28,9 @@ def parse_dustmasker(mask_info=AMPLICON_MASK_INFO):
             start = int(line[1])+1 # mask info is 0-based, but we want 1-based
             end = int(line[2])+2 # +1 for 1-based and +1 to include last pos in range
             mask[gene].update(list(range(start, end))) # add all pos in between start and end
+    if not mask:
+        print("ERROR: No mask data loaded! Is the file the correct format?", file=sys.stderr)
+        sys.exit(1)
     return mask
 
 
@@ -251,7 +253,7 @@ parser.add_argument("--exclude_bimeras", action="store_true", default=False, hel
 parser.add_argument("--max_snv_dist", type=int, default=-1, help="Maximum SNV distance to include ASV (default: -1, disabled)")
 parser.add_argument("--max_indel_dist", type=int, default=-1, help="Maximum indel distance to include ASV (default: -1, disabled)")
 parser.add_argument("--amp_db", default=AMPLICON_DATABASE, help=f"Amplicon sequence fasta file (default: {AMPLICON_DATABASE})")
-parser.add_argument("--amp_mask", default=AMPLICON_MASK_INFO, help=f"Amplicon low complexity mask info (default: {AMPLICON_MASK_INFO}, enter 'None' to disable)")
+parser.add_argument("--amp_mask", default=None, help=f"Amplicon low complexity mask info (default: None, disabled)")
 parser.add_argument("-v", "--verbose", default=False, action='store_true', help="Increase verobsity")
 args = parser.parse_args()
 
@@ -265,12 +267,12 @@ if not amplicons:
     sys.exit(1)
 
 
-if args.amp_mask in ["None", 'none', 'NONE']:
-    print(f"INFO: No mask data specified.", file=sys.stderr)
-    mask = {}
-else:
+if args.amp_mask:
     print(f"INFO: Loading {args.amp_mask}", file=sys.stderr)
     mask = parse_dustmasker(args.amp_mask)
+else:
+    print(f"INFO: No mask data specified.", file=sys.stderr)
+    mask = {}
 
 print(f"INFO: Loading {args.fasta}")
 asvs = get_asv_seqs(args.fasta)
