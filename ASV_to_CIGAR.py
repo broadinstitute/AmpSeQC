@@ -254,7 +254,7 @@ parser.add_argument("--max_snv_dist", type=int, default=-1, help="Maximum SNV di
 parser.add_argument("--max_indel_dist", type=int, default=-1, help="Maximum indel distance to include ASV (default: -1, disabled)")
 parser.add_argument("--amp_db", default=AMPLICON_DATABASE, help=f"Amplicon sequence fasta file (default: {AMPLICON_DATABASE})")
 parser.add_argument("--amp_mask", default=None, help=f"Amplicon low complexity mask info (default: None, disabled)")
-parser.add_argument("-v", "--verbose", default=False, action='store_true', help="Increase verobsity")
+parser.add_argument("-v", "--verbose", default=False, action='store_true', help="Increase verbosity")
 args = parser.parse_args()
 
 if args.verbose:
