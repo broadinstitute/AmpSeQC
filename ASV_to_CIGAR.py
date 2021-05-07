@@ -82,11 +82,10 @@ def get_asv_seqs(file):
     """Load ASV sequences from fasta file"""
     seqs = {}
     for i, seq in enumerate(SeqIO.parse(file, "fasta")):
-        i += 1
-        seq.id = f"H{i}"
+        seq.id = f"H{i+1}"
         seq.name = seq.id
-        seq.description = seq
-        seqs[seq.id] = seq.seq
+        seq.description = seq.id
+        seqs[seq.id] = seq
     return seqs
 
 
