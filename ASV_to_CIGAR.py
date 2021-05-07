@@ -86,7 +86,7 @@ def get_asv_seqs(file):
         seq.id = f"H{i}"
         seq.name = seq.id
         seq.description = seq
-        seqs[seq.id] = seq
+        seqs[seq.id] = seq.seq
     return seqs
 
 
