@@ -292,7 +292,7 @@ def convert_seqtab(file, cigars, out):
             w.write("sample\t" + "\t".join(variants) + "\n")
             # write one sample per line
             for sample in sorted(seqtab):
-                w.write(f"{sample}\t" + "\t".join([f"{seqtab[sample][variant]}" for variant in variants]) + "\n")
+                w.write(f"{sample}\t" + "\t".join([f"{seqtab[sample].get(variant, 0)}" for variant in variants]) + "\n")
         
             return True
 
