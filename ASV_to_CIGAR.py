@@ -255,6 +255,7 @@ def convert_seqtab(file, cigars, out):
         print("ERROR: No haplotypes to convert!", file=sys.stderr)
         return
     
+    total_reads = {}
     # parse seqtab file
     with open(file) as f:
         seqtab = {}
@@ -270,16 +271,20 @@ def convert_seqtab(file, cigars, out):
                 if not variant:
                     continue # ASV was filtered out
                 # sum ASVs per sample that are the same variant
+                count = int(count)
+                if variant not in total_reads:
+                    total_reads[variant] = 0
+                total_reads[variant] += count
                 if variant not in seqtab[sample]:
                     seqtab[sample][variant] = 0
-                seqtab[sample][variant] += int(count)
+                seqtab[sample][variant] += count
         
         if not seqtab:
             print("ERROR: No seqtab data to write!", file=sys.stderr)
             return
 
         # write output file (sort variants first)
-        variants = sorted(list(variants))
+        variants = sorted(list(variants), key=lambda variant: total_reads[variant], reverse=True)
         with open(out, "w") as w:
             # write header
             w.write("sample\t" + "\t".join(variants) + "\n")
