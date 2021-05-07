@@ -57,11 +57,11 @@ def parse_asv_table(file, min_reads=0, min_samples=0, max_snv_dist=-1, max_indel
             # total samples
             if int(line[2]) < min_samples: 
                 continue # skip if in too few samples
-            # minimum SNV distance (3D7 or DD2)
-            if max_snv_dist >= 0 and min(int(line[5]), int(line[8])) > max_snv_dist:
+            # minimum SNV distance
+            if max_snv_dist >= 0 and int(line[5]) > max_snv_dist:
                 continue # skip if snv distance > threshold
-            # minimum indel distance (3D7 or DD2)
-            if max_indel_dist >= 0 and min(int(line[6]), int(line[9])) > max_indel_dist:
+            # minimum indel distance
+            if max_indel_dist >= 0 and int(line[6]) > max_indel_dist:
                 continue # skip if indel distance > threshold
             # check for failing the snv_filter and indel_filter
             if not include_failed and (line[10] == "FAIL" or line[11] == "FAIL"):
@@ -215,6 +215,7 @@ def parse_alignment(alignment, mask={}, min_homopolymer_length=5, amplicon=None)
 
 # get variants per amplicon per position
 def parse_alignments(bins, mask={}, min_homopolymer_length=5, outdir="ASVs"):
+    """Parse multi-sequence alignment fasta file from MUSCLE"""
     cigars = {}
     for amplicon in sorted(bins):
         msa = os.path.join(outdir, f"{amplicon}.msa")
@@ -228,7 +229,8 @@ def parse_alignments(bins, mask={}, min_homopolymer_length=5, outdir="ASVs"):
 
 
 # write table of asv -> amplicon/cigar
-def write_cigar_strings(cigars, out="CIGARs.tsv"):
+def write_cigar_strings(cigars, out):
+    """Write conversion table from ASV to CIGAR string"""
     with open(out, 'w') as w:
         # write tab file with ASV, amplicon target, and CIGAR string
         w.write("ASV\tAmplicon\tCIGAR\n")
@@ -238,22 +240,74 @@ def write_cigar_strings(cigars, out="CIGARs.tsv"):
                 w.write(f"{ASV}\t{amplicon}\t{cigars[amplicon][ASV]}\n")
 
 
+def convert_seqtab(file, cigars, out):
+    """Parse seqtab file, converting ASVs to CIGAR strings"""
+    # get dict of ASVs -> amplicon/CIGAR
+    asv_to_cigar = {}
+    variants = set()
+    for amplicon in sorted(cigars):
+        for ASV in sorted(cigars[amplicon]):
+            variant = f"{amplicon}\t{cigars[amplicon][ASV]}"
+            asv_to_cigar[ASV] = variant
+            variants.add(variant)
+    
+    if not variants:
+        print("ERROR: No haplotypes to convert!", file=sys.stderr)
+        return
+    
+    # parse seqtab file
+    with open(file) as f:
+        seqtab = {}
+        f.readline()
+        for line in f:
+            line = line.strip().split("\t")
+            sample = line[0]
+            seqtab[sample] = {}
+            # iterate through each ASV (i.e. H1, H2, ... HN)
+            for i, count in enumerate(line[1:]):
+                h = f"H{i+1}" # don't use actual sequence
+                variant = asv_to_cigar.get(h)
+                if not variant:
+                    continue # ASV was filtered out
+                # sum ASVs per sample that are the same variant
+                if variant not in seqtab[sample]:
+                    seqtab[sample][variant] = 0
+                seqtab[sample][variant] += int(count)
+        
+        if not seqtab:
+            print("ERROR: No seqtab data to write!", file=sys.stderr)
+            return
+
+        # write output file (sort variants first)
+        variants = sorted(list(variants))
+        with open(out, "w") as w:
+            # write header
+            w.write("sample\t" + "\t".join(variants) + "\n")
+            # write one sample per line
+            for sample in sorted(seqtab):
+                w.write(f"{sample}\t" + "\t".join([f"{seqtab[sample][variant]}" for variant in variants]) + "\n")
+        
+            return True
+
+
 parser = argparse.ArgumentParser(usage="%(prog)s [options] fasta table alignments out",
                                  description="Convert ASVs from DADA2 pipeline to pseudo-CIGAR strings.",
                                  epilog="(C)2021 Broad Institute")
 parser.add_argument("fasta", help="Fasta file of ASV sequences from DADA2 pipeline")
 parser.add_argument("table", help="ASV table from DADA2 pipeline")
-parser.add_argument("alignments", help="Directory to store ASV alignment files")
-parser.add_argument( "out", help="Output file for ASV -> CIGAR string table")
+parser.add_argument("seqtab", help="DADA2 seqtab tsv file")
+parser.add_argument("out", help="Output seqtab tsv file with amplicon/variant counts")
+parser.add_argument("--asv_to_cigar", help="Output file for ASV -> CIGAR string table")
+parser.add_argument("-a", "--alignments", default="alignments", help="Directory to store ASV alignment files (default: alignments)")
 parser.add_argument("-p", "--polyN", type=int, default=5, help="Mask homopolymer runs length >= polyN (default: 5; disabled < 2)")
-parser.add_argument("--min_reads", type=int, default=0, help="Minimum total reads to include ASV (default: 0, disabled)")
-parser.add_argument("--min_samples", type=int, default=0, help="Minimum samples to include ASV (default: 0, disabled)")
-parser.add_argument("--include_failed", action="store_true", default=False, help="INCLUDE ASVs that failed post-DADA2 filters (default: False)")
-parser.add_argument("--exclude_bimeras", action="store_true", default=False, help="EXCLUDE ASVs that DADA2 flagged as bimeras (default: False)")
-parser.add_argument("--max_snv_dist", type=int, default=-1, help="Maximum SNV distance to include ASV (default: -1, disabled)")
-parser.add_argument("--max_indel_dist", type=int, default=-1, help="Maximum indel distance to include ASV (default: -1, disabled)")
-parser.add_argument("--amp_db", default=AMPLICON_DATABASE, help=f"Amplicon sequence fasta file (default: {AMPLICON_DATABASE})")
-parser.add_argument("--amp_mask", default=None, help=f"Amplicon low complexity mask info (default: None, disabled)")
+parser.add_argument("-r", "--min_reads", type=int, default=0, help="Minimum total reads to include ASV (default: 0, disabled)")
+parser.add_argument("-n", "--min_samples", type=int, default=0, help="Minimum samples to include ASV (default: 0, disabled)")
+parser.add_argument("-f", "--include_failed", action="store_true", default=False, help="INCLUDE ASVs that failed post-DADA2 filters (default: False)")
+parser.add_argument("-b", "--exclude_bimeras", action="store_true", default=False, help="EXCLUDE ASVs that DADA2 flagged as bimeras (default: False)")
+parser.add_argument("-s", "--max_snv_dist", type=int, default=-1, help="Maximum SNV distance to include ASV (default: -1, disabled)")
+parser.add_argument("-i", "--max_indel_dist", type=int, default=-1, help="Maximum indel distance to include ASV (default: -1, disabled)")
+parser.add_argument("-d", "--amp_db", default=AMPLICON_DATABASE, help=f"Amplicon sequence fasta file (default: {AMPLICON_DATABASE})")
+parser.add_argument("-m", "--amp_mask", default=None, help=f"Amplicon low complexity mask info (default: None, disabled)")
 parser.add_argument("-v", "--verbose", default=False, action='store_true', help="Increase verbosity")
 args = parser.parse_args()
 
@@ -310,5 +364,12 @@ if not cigars:
     print("ERROR: could not determine CIGAR strings", file=sys.stderr)
     sys.exit(1)
 
-write_cigar_strings(cigars, args.out)
-print(f"INFO: Wrote ASV->CIGAR to {args.out}", file=sys.stderr)
+if args.asv_to_cigar:
+    write_cigar_strings(cigars, args.asv_to_cigar)
+    print(f"INFO: Wrote ASV->CIGAR table to {args.asv_to_cigar}", file=sys.stderr)
+
+
+print(f"INFO: Converting DADA2 seqtab file {args.seqtab} to {args.out}", file=sys.stderr)
+if convert_seqtab(args.seqtab, cigars, args.out):
+    print("INFO: Completed successfully!", file=sys.stderr)
+
