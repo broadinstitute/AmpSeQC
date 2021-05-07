@@ -5,6 +5,7 @@ import argparse
 import sys
 import os
 import subprocess
+import re
 
 from Bio import SeqIO, AlignIO
 
@@ -69,7 +70,7 @@ def parse_asv_table(file, min_reads=0, min_samples=0, max_snv_dist=-1, max_indel
             # check for dada2 calling asv a bimera
             if exclude_bimeras and line[-1] == "TRUE":
                 continue # skip if dada2 called bimera
-            ASV = line[0] # (e.g. H123)
+            ASV = line[0] # (e.g. ASV123)
             amplicon = line[4] # target gene/amplicon
             if amplicon not in bins:
                 bins[amplicon] = []
@@ -80,13 +81,7 @@ def parse_asv_table(file, min_reads=0, min_samples=0, max_snv_dist=-1, max_indel
 # parse ASV fasta file
 def get_asv_seqs(file):
     """Load ASV sequences from fasta file"""
-    seqs = {}
-    for i, seq in enumerate(SeqIO.parse(file, "fasta")):
-        seq.id = f"H{i+1}"
-        seq.name = seq.id
-        seq.description = seq.id
-        seqs[seq.id] = seq
-    return seqs
+    return {seq.id: seq for seq in SeqIO.parse(file, "fasta")}
 
 
 # write amplicon fasta files
@@ -237,12 +232,13 @@ def parse_alignments(bins, mask={}, min_homopolymer_length=5, outdir="ASVs"):
 # write table of asv -> amplicon/cigar
 def write_cigar_strings(cigars, out):
     """Write conversion table from ASV to CIGAR string"""
+    number = re.compile(r"\d+")
     with open(out, 'w') as w:
         # write tab file with ASV, amplicon target, and CIGAR string
         w.write("ASV\tAmplicon\tCIGAR\n")
         for amplicon in sorted(cigars):
-            # sort on ASV number (assuming "H123" format)
-            for ASV in sorted(cigars[amplicon], key = lambda x: int(x[1:])):
+            # sort on ASV number
+            for ASV in sorted(cigars[amplicon], key = lambda x: int(number.search(x).group()[0])):
                 w.write(f"{ASV}\t{amplicon}\t{cigars[amplicon][ASV]}\n")
 
 
@@ -270,10 +266,10 @@ def convert_seqtab(file, cigars, out):
             line = line.strip().split("\t")
             sample = line[0]
             seqtab[sample] = {}
-            # iterate through each ASV (i.e. H1, H2, ... HN)
+            # iterate through each ASV (i.e. ASV1, ASV2, ... ASVn)
             for i, count in enumerate(line[1:]):
-                h = f"H{i+1}" # don't use actual sequence
-                variant = asv_to_cigar.get(h)
+                asv = f"ASV{i+1}" # don't use actual sequence
+                variant = asv_to_cigar.get(asv)
                 if not variant:
                     continue # ASV was filtered out
                 # sum ASVs per sample that are the same variant
