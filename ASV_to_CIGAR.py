@@ -80,7 +80,14 @@ def parse_asv_table(file, min_reads=0, min_samples=0, max_snv_dist=-1, max_indel
 # parse ASV fasta file
 def get_asv_seqs(file):
     """Load ASV sequences from fasta file"""
-    return {seq.id: seq for seq in SeqIO.parse(file, "fasta")}
+    seqs = {}
+    for i, seq in enumerate(SeqIO.parse(file, "fasta")):
+        i += 1
+        seq.id = f"H{i}"
+        seq.name = seq.id
+        seq.description = seq
+        seqs[seq.id] = seq
+    return seqs
 
 
 # write amplicon fasta files
