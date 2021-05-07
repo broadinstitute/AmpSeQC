@@ -286,7 +286,7 @@ def convert_seqtab(file, cigars, out):
             return
 
         # write output file (sort variants first)
-        variants = sorted(list(variants), key=lambda variant: total_reads[variant], reverse=True)
+        variants = sorted(list(variants), key=lambda variant: total_reads.get(variant, 0), reverse=True)
         with open(out, "w") as w:
             # write header
             w.write("sample\t" + "\t".join(variants) + "\n")
