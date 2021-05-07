@@ -247,7 +247,7 @@ def convert_seqtab(file, cigars, out):
     variants = set()
     for amplicon in sorted(cigars):
         for ASV in sorted(cigars[amplicon]):
-            variant = f"{amplicon}\t{cigars[amplicon][ASV]}"
+            variant = f"{amplicon},{cigars[amplicon][ASV]}"
             asv_to_cigar[ASV] = variant
             variants.add(variant)
     
