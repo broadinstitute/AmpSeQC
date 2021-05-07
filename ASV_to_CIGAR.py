@@ -9,7 +9,7 @@ import subprocess
 from Bio import SeqIO, AlignIO
 
 # default location of amplicon sequences and DUST mask info for the gt-seq panel
-AMPLICON_DATABASE="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicons.fasta"
+AMPLICON_DATABASE="/gsap/garage-protistvector/ampseq_data/AmpSeQC/amplicons_noprimers.fasta"
 
 verbose = False # set to true to report more messages
 
