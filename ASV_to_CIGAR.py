@@ -64,10 +64,10 @@ def parse_asv_table(file, min_reads=0, min_samples=0, max_snv_dist=-1, max_indel
             if max_indel_dist >= 0 and int(line[6]) > max_indel_dist:
                 continue # skip if indel distance > threshold
             # check for failing the snv_filter and indel_filter
-            if not include_failed and (line[10] == "FAIL" or line[11] == "FAIL"):
+            if not include_failed and (line[-3] == "FAIL" or line[-2] == "FAIL"):
                 continue # failed post-DADA2 filters
             # check for dada2 calling asv a bimera
-            if exclude_bimeras and line[12] == "TRUE":
+            if exclude_bimeras and line[-1] == "TRUE":
                 continue # skip if dada2 called bimera
             ASV = line[0] # (e.g. H123)
             amplicon = line[4] # target gene/amplicon
