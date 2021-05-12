@@ -238,7 +238,7 @@ def write_cigar_strings(cigars, out):
         w.write("ASV\tAmplicon\tCIGAR\n")
         for amplicon in sorted(cigars):
             # sort on ASV number
-            for ASV in sorted(cigars[amplicon], key = lambda x: int(number.search(x).group()[0])):
+            for ASV in sorted(cigars[amplicon], key = lambda x: int(number.search(x).group())):
                 w.write(f"{ASV}\t{amplicon}\t{cigars[amplicon][ASV]}\n")
 
 
