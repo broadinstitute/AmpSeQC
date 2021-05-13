@@ -115,8 +115,8 @@ def run_muscle(bins, outdir="ASVs"):
 def _get_homopolymer_runs(seq, min_length=5):
     """Detect and report homopolymer runs of minimum length"""
     runs = set()
-    prev = ""
-    run = 0
+    prev = None
+    run = 1
     start = None
     last_non_gap = None
     for i in range(len(seq)):
@@ -124,12 +124,23 @@ def _get_homopolymer_runs(seq, min_length=5):
             continue
         if seq[i] == prev:
             if not start:
-                start = last_non_gap
+                if i > 1 and seq[i-2] == '-':
+                    # gap at start of run
+                    j = i - 2
+                    while j >= 0:
+                        if seq[j] != "-":
+                            start = j+1 # start is the start of the gap
+                            break
+                        j -= 1
+                    else:
+                        start = 0
+                else:
+                    start = last_non_gap
             run += 1
         else:
             if run >= min_length:
                 runs.update(list(range(start, i)))
-            run = 0
+            run = 1
             start = None
         prev = seq[i]
         last_non_gap = i
